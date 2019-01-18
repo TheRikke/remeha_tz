@@ -36,6 +36,8 @@ def parse_data(data):
                 yield datamap[n][2], value, datamap[n][5]
             yield datamap[n][2], value, datamap[n][5]
 
+log_file = open("data.bin", "ab")
+
 while True:
     sys.stdout.flush()
     ser.write(string)
@@ -43,25 +45,26 @@ while True:
     #data = ser.read(ser.inWaiting())
     #start = time.time()
     data = ser.read(74)
+    
     #end = time.time()
     #print(end - start)
 
     print("known data: " + data.hex())
-    #while len(data) < 74:
-    #    data += ser.read(ser.inWaiting())
-    
-    unpacked = struct.unpack(fmt, data)
+    while len(data) < 74:
+        data += ser.read(ser.inWaiting())
+    log_file.write(data)
+    print(struct.unpack(fmt, data))
 
-    stats = list(parse_data(unpacked))
-    for stat in stats:
-        s = 'cv.{}:{}|{}'.format(*stat)
-        print(stat)
+    #stats = list(parse_data(unpacked))
+    #for stat in stats:
+    #    s = 'cv.{}:{}|{}'.format(*stat)
+    #    print(stat)
 
     while ser.inWaiting():
         unknowndata = ser.read(ser.inWaiting())
         print ("Error unknown data: " + unknowndata.hex())
         time.sleep(1)
     #assert not ser.inWaiting()
-    time.sleep(3)
+    time.sleep(1)
 
 #print('kthxbye')
