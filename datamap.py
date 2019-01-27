@@ -1,15 +1,10 @@
 import struct
 
-fmt = '<bhbbh'+'13hbh7b4B11bhh9b'+'hb'
+fmt = '<13hbh7b4B11bhh9b'
 
 byte_to_bit = lambda x: map(int, bin(x).lstrip('0b').rjust(8,'0'))
 
 datamap = [
-    [00, lambda x: x, None, 'start', 0, 'g'],
-    [00, lambda x: x, None, '', 0, 'g'],
-    [00, lambda x: x, None, '', 0, 'g'],
-    [00, lambda x: x, None, '', 0, 'g'],
-    [00, lambda x: x, None, '', 0, 'g'],
     [ 0, lambda x: x*0.01, 'aanvoer_temp', "Aanvoer temp.", 0, 'ms'],
     [ 2, lambda x: x*0.01, 'retour_temp', "Retour temp.", 0, 'ms'],
     [ 4, lambda x: x*0.01, 'zonneboiler_temp', "Zonneboiler temp.", 0, 'ms'],
@@ -87,6 +82,4 @@ datamap = [
     [00, lambda x: x, 'dunno59', "?", 0, 'ms'],
     [00, lambda x: x, 'dunno59', "?", 0, 'ms'],
     [00, lambda x: x, 'dunno59', "?", 0, 'ms'],
-    [00, lambda x: x, None, 'crc', 0, 'g'],
-    [00, lambda x: x, None, 'stop', 0, 'g'],
 ]
