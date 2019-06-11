@@ -1,124 +1,47 @@
 #!/usr/bin/python
 
 import dash
-#import pandas as pd
-import plotly.graph_objs as go 
-import dash.dependencies as ddp
+import plotly.graph_objs as go
 import dash_core_components as dcc
 import dash_html_components as html
-import string
 import csv
 import struct
 from dash.dependencies import Input, Output
-from datamap import datamap, fmt
-from datetime import datetime,timedelta,date
-import dateutil.parser
-alphabet =  list(string.ascii_lowercase)
-second = 1000
-minute = 60
-hour   = 60
-day    = 24
+from datamap import datamap
+import argparse
+
 interval = 5000
-
-ind = [0, 0.1, 0.2, 0.3]
-#df = pd.DataFrame({'one' : pd.Series([4., 3., 2., 1.], index=ind),
-#                   'two' : pd.Series([1., 2., 3., 4.], index=ind)})
-
 data_dates = []
-data_vorlauf = []
-data_ruecklauf = []
-data_powerlevel = []
+data = []
+data_description = []
 indexvalue = 0.3
-counter = 0
+
+parser = argparse.ArgumentParser(description='Process some integers.')
+#parser.add_argument('integers', metavar='N', type=int, nargs='+',
+#                    help='an integer for the accumulator')
+parser.add_argument('--debug',  action='store_true',   help='run in debug mode')
+parser.add_argument('-m','--max-read',  type=int,  default=1024,  help='maximum to read in kb [Default: %(default)s]')
+parser.add_argument('-p','--max-points',  type=int,  default=50,  help='maximum data points to hold [Default: %(default)s]')
+args = parser.parse_args()
 
 inputFile = open("data.csv", mode = "r")
 csv_reader = csv.reader(inputFile)
 csv_pos = 0
-
+fmt = "<" + ''.join( entry[0] for entry in datamap)
+print(fmt)
 def plot_figure(data):
     layout = dict(
         title="Figure w/ plotly",
+        uirevision=1
     )
 
     fig = dict(data=data, layout=layout)
     return fig
 
-def gen_plot(dopboxvalue):
-    print("gen_plot: " + str(dopboxvalue))
-    global counter
-    global df
-    global indexvalue
-    global data_dates
-    global data_vorlauf
-    global data_ruecklauf
-    global data_powerlevel
-#    data = inputFile.read(2)
-#    while len(data) > 0:
-#        indexvalue = indexvalue + 0.1
-#        df.loc[ indexvalue ] = [ counter, indexvalue ]
-#        counter = counter + 1
-#        data = inputFile.read(2)
-    firstValidDateFound = True
-    errorCount = 0
-    skipCount = 0
-    readCount = 0
-    DateAndTimeToParse = None
-    for row in csv_reader:
-        readCount += 1
-        #strrow = ','.join(str(e) for e in row)
-#        print("Row[2]: " + str(row[2]))
-#        print(len(row))
-        try:
-            if not firstValidDateFound and dateutil.parser.parse(row[0]) >= DateAndTimeToParse:
-                firstValidDateFound = True
-        except:
-            errorCount += 1
-            continue
-        if firstValidDateFound:
-            if row[2] == "258" and len(row) >= 68:
-                data_dates += [ row[0] ]
-                integer_list = [ int(value) for value in row[4:] ]
-                integer_list1 = ','.join(str(e) for e in integer_list)
-    #            print("intlist: " + integer_list1)
-                packed_data = bytes(struct.pack( str(len(row) -4) + "B", *integer_list))
-    #            print("length: " + str(len(packed_data)))
-                try:
-                    parsed_data = list(parse_data(struct.unpack(fmt, packed_data)))
-                except:
-                    print("Error in line(%d): %s" % (len(row), row))
-                    continue
-                data_vorlauf += [ parsed_data[0][1] ]
-                data_ruecklauf += [ parsed_data[1][1] ]
-                data_powerlevel += [ parsed_data[19][1] ]
-
-    #            print("parsed_data[0]: " + str(parsed_data[0]))
-    #            strrow1 = ','.join(str(e) for e in data_dates)
-    #            strrow2 = ','.join(str(e) for e in data_vorlauf)
-    #            print("Dates:" + strrow1)
-    #            print("Vorlauf: " + strrow2)
-        else:
-            skipCount += 1
-    print("Update Values: %s, readCount %d, skipped %d, errors %d" % (len(data_dates), readCount, skipCount, errorCount))
+app = dash.Dash()
 
 
-    if dopboxvalue is None or dopboxvalue:
- #       strrow1 = ','.join(str(e) for e in data_dates)
- #       strrow2 = ','.join(str(e) for e in data_vorlauf)
-
- #       print("Dates:" + strrow1)
- #       print("Vorlauf: " + strrow2)
-        trace = [go.Scatter(x=data_dates, y=data_vorlauf, name="Vorlauf"),
-                 go.Scatter(x=data_dates, y=data_ruecklauf, name="Rücklauf"),
-                 go.Scatter(x=data_dates, y=data_powerlevel, name="PowerLevel")
-                 ]
-        fig   = plot_figure(trace)
-        print("gen_plot end")
-        return fig
-    print("gen_plot end 2 ")
-    return None
-
-def serve_layout():
-    return html.Div(children=[
+app.layout = html.Div(children=[
                 html.Div([
                     dcc.RadioItems(id='set-time',
                         value=5000,
@@ -127,18 +50,76 @@ def serve_layout():
                             {'label': 'Every 5 seconds', 'value': 5000},
                             {'label': 'Off', 'value': 60*60*1000} # or just every hour
                         ]),
-                    dcc.Checklist(
-                    id='checklist',
-                    options=[ { 'label' : 'on', 'value': 1} ],
-                    values=[2]
-                ),
+                        dcc.Checklist(
+                            id='checklist',
+                            options=[ { 'label' : 'on', 'value': 1} ],
+                            values=[2]
+                        ),
+                        ]),
                 html.H1("Plotly test with Live update",
-                        style={"font-family": "Helvetica", 
+                        style={"font-family": "Helvetica",
                                "border-bottom": "1px #000000 solid"}),
-                ], className='banner'),
-        html.Div([dcc.Graph(id='plot', figure=gen_plot(1))],),
-        dcc.Interval(id='live-update', interval=interval),
+                html.Div(children='''
+                    Dash: A web application framework for Python.
+                '''),
+                html.Div(dcc.Graph(id='plot',  style={'height': '80vh'}),style={'height': '100vh'}),
+#                dcc.Slider(
+#                    id='year-slider',
+#                    min=df['year'].min(),
+#                    max=df['year'].max(),
+#                    value=df['year'].min(),
+#                    marks={str(year): str(year) for year in df['year'].unique()}
+#                ),
+
+#                html.Div([dcc.Graph(id='plot2'),]),
+        dcc.Interval(id='live-update', interval=interval, n_intervals=0),
     ],)
+
+@app.callback(Output('live-update', 'interval'), [Input('set-time', 'value')])
+def update_interval(value):
+    return value
+
+@app.callback(Output('plot', 'figure'), [Input('live-update', 'n_intervals')])
+def gen_plot(n):
+    print("gen_plot: ")
+    global data
+
+    read_data(data, csv_reader)
+    toDelete =  len(data[0])-args.max_points
+    if toDelete > 0:
+        print("Delete %d points" % toDelete)
+        for values in data:
+            del values[toDelete:]
+
+    print("Number of samples %d in %d traces" % (len(data[0]),  len(data)) )
+    trace = []
+    for index, values in enumerate(data):
+    #            print("Group: %s" % data_description[index][1])
+        if index > 0:
+            #legendgroup='group2',
+            if toDelete > 0:
+                del data[index][toDelete:]
+            if data_description[index][1] == "temps":
+                trace += [ go.Scatter(x=data[0], y=data[index], yaxis='y2',  name=data_description[index][0], line=dict(width=1)) ]
+            elif data_description[index][1] == "flow":
+                trace += [ go.Scatter(x=data[0], y=data[index], name=data_description[index][0], line=dict(width=1)) ]
+
+
+    layout = go.Layout(
+        title="Heating at Home",
+        uirevision=1,
+        yaxis=dict(domain=[0, 0.50]),
+        yaxis2=dict(domain=[0.50, 1]),
+    )
+
+#    fig   = plot_figure(trace)
+    fig = dict(data=trace,  layout=layout)
+#    fig = tools.make_subplots(rows=1, cols=2)
+#    fig.append_trace(trace_temps, 1, 1)
+#    fig.append_trace(trace_flow, 1, 2)
+#    fig['layout'].update(height=600, width=800, title='Heating at Home', uirevision=1, yaxis=dict(domain=[0, 0.50]), yaxis2=dict(domain=[0.50, 1]))
+    print("gen_plot end 1.1")
+    return fig
 
 def parse_data(data):
     for n, x in enumerate(data):
@@ -153,65 +134,61 @@ def parse_data(data):
                 yield datamap[n][2], value, datamap[n][5]
             yield datamap[n][2], value, datamap[n][5]
 
-#if __name__ == '__main__':
-#    df = pd.read_csv(inputFile, parse_dates=True)
-DateAndTimeToParse = datetime.now() - timedelta(hours=1)
-firstValidDateFound = False
-errorCount = 0
-skipCount = 0
-readCount = 0
-for row in csv_reader:
-    readCount += 1
-    #strrow = ','.join(str(e) for e in row)
-#        print("Row[2]: " + str(row[2]))
-#        print(len(row))
-    try:
-        if not firstValidDateFound and dateutil.parser.parse(row[0]) >= DateAndTimeToParse:
-            firstValidDateFound = True
-    except:
-        errorCount += 1
-        continue
-    if firstValidDateFound:
+def parse_data2(data):
+    for n, x in enumerate(data):
+        value = datamap[n][1](x)
+#        print("Value: " + str(value))
+        if isinstance(value, list):
+            for i in value:
+                #if i[0]:
+                yield i
+        elif datamap[n][2]:
+            yield value
+
+def read_data(data, csv_reader):
+#    DateAndTimeToParse = datetime.now() - timedelta(hours=1)
+#    firstValidDateFound = False
+#    errorCount = 0
+    skipCount = 0
+    readCount = 0
+    for row in csv_reader:
+        readCount += 1
         if row[2] == "258" and len(row) >= 68:
-            data_dates += [ row[0] ]
             integer_list = [ int(value) for value in row[4:] ]
-            integer_list1 = ','.join(str(e) for e in integer_list)
-#            print("intlist: " + integer_list1)
             packed_data = bytes(struct.pack( str(len(row) -4) + "B", *integer_list))
-#            print("length: " + str(len(packed_data)))
-            try:
-                parsed_data = list(parse_data(struct.unpack(fmt, packed_data)))
-            except:
-                print("Error in line(%d): %s" % (len(row), row))
-                continue
-            data_vorlauf += [ parsed_data[0][1] ]
-            data_ruecklauf += [ parsed_data[1][1] ]
-            data_powerlevel += [ parsed_data[19][1] ]
+            parsed_data = list(parse_data2(struct.unpack(fmt, packed_data)))
 
-#            print("parsed_data[0]: " + str(parsed_data[0]))
-#            strrow1 = ','.join(str(e) for e in data_dates)
-#            strrow2 = ','.join(str(e) for e in data_vorlauf)
-#            print("Dates:" + strrow1)
-#            print("Vorlauf: " + strrow2)
+            data[0] += [ row[0] ]
+            for index, value in enumerate(parsed_data):
+                data[index + 1] += [ value ]
+        else:
+            skipCount += 1
+
+def skipIfToMuch(fileToSkip,  maximumInKb):
+    maxDataToReadInitially = maximumInKb * 1024
+    fileToSkip.seek(0, 2)
+    newPosition = fileToSkip.tell() - maxDataToReadInitially
+    if newPosition < 0:
+        newPosition = 0
+    fileToSkip.seek(newPosition)
+    fileToSkip.readline()
+
+# for date
+data += [ [] ]
+data_description +=  [ [ "date_time", "none" ] ]
+for map_entry in datamap:
+#        print("Value: " + str(value))
+    if isinstance(map_entry[2], list):
+        for index, description in enumerate(map_entry[3]):
+            data += [ [] ]
+            data_description += [ [ str(description), str(map_entry[4][index]) ] ]
     else:
-        skipCount += 1
+        data += [ [] ]
+        data_description +=  [ [ str(map_entry[3]), str(map_entry[4]) ] ]
 
-#csv_pos = inputFile.
-print("Values: %s, read %d, skipped %d, errors %d" % (len(data_dates), readCount, skipCount, errorCount))
+skipIfToMuch(inputFile,  args.max_read)
+read_data(data, csv_reader)
+print("dash core component version: %s" % dcc.__version__)
 
-app = dash.Dash()
-app.layout = serve_layout
 
-@app.callback(
-    dash.dependencies.Output('live-update', 'interval'),
-    [dash.dependencies.Input('set-time', 'value')])
-def update_interval(value):
-    return value
-
-app.callback(
-    ddp.Output('plot', 'figure'),
-    [Input('checklist', 'values')],
-    [],
-    [ddp.Event('live-update', 'interval')])(gen_plot)
-
-app.run_server(host="0.0.0.0",debug=True)
+app.run_server(host="0.0.0.0",debug=args.debug)

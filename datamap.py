@@ -1,85 +1,81 @@
 import struct
 
-fmt = '<13hbh7b4B11bhh9b'
+#fmt = '<13hbh7b4B11bhh9b'
 
-byte_to_bit = lambda x: map(int, bin(x).lstrip('0b').rjust(8,'0'))
+byte_to_bit = lambda x: list(map(int, bin(x).lstrip('0b').rjust(8,'0')))
 
 datamap = [
-    [ 0, lambda x: x*0.01, 'aanvoer_temp', "Aanvoer temp.", 0, 'ms'],
-    [ 2, lambda x: x*0.01, 'retour_temp', "Retour temp.", 0, 'ms'],
-    [ 4, lambda x: x*0.01, 'zonneboiler_temp', "Zonneboiler temp.", 0, 'ms'],
-    [ 6, lambda x: x*0.01, 'buiten_temp', "Buiten temp.", 0, 'ms'],
-    [ 8, lambda x: x*0.01, 'boiler_temp', "Boiler temp.", 0, 'ms'],
-    [10, lambda x: x, 'dunno1', "?", 0, 'ms'],
-    [12, lambda x: x*0.01, 'automaat_temp', "Automaat temp.", 0, 'ms'],
-    [14, lambda x: x*0.01, 'ruimte_temp', "Ruimte temp.", 0, 'ms'],
-    [16, lambda x: x*0.01, 'cv_setpoint', "CV Setpunt", 0, 'ms'],
-    [18, lambda x: x*0.01, 'ww_setpoint', "WW Setpunt", 0, 'ms'],
-    [20, lambda x: x*0.01, 'ruimte_setpoint', "Ruimte setpunt", 0, 'ms'],
-    [22, lambda x: x, 'ventilator_setpoint', "Ventilator setpunt", 0, 'ms'],
-    [24, lambda x: x, 'ventilator_toeren', "Ventilator toeren", 0, 'ms'],
-    [26, lambda x: x*0.1, 'ionisatie_stroom', "Ionisatie stroom", 0, 'ms'],
-    [27, lambda x: x*0.01, 'intern_setpoint', "Intern setpunt", 0, 'ms'],
-    [29, lambda x: x, 'beschikbaar_vermogen', "Beschikb. vermogen", 0, 'ms'],
-    [30, lambda x: x, 'pomp', "Pomp", 0, 'ms'],
-    [31, lambda x: x, 'dunno2', "?", 0, 'ms'],
-    [32, lambda x: x, 'gewenst_vermogen', "Gewenst vermogen", 0, 'ms'],
-    [33, lambda x: x, 'geleverd_vermogen', "Geleverd vermogen", 0, 'ms'],
-    [34, lambda x: x, 'dunno3', "?", 0, 'ms'],
-    [35, lambda x: x, 'dunno4', "?", 0, 'ms'],
-    [36, 
-        lambda x: byte_to_bit(x ^ 0b00010000),
-        ['ww_warmtevraag', 'anti_legionella', 'ww_blokkering', 'ww_eco', 'vorstbeveiliging', 'au_warmtevraag', 'mod_warmtevraag', 'mod_regelaar'],
+#  Byte, int to value transl., variable name,
+    [ 'h', lambda x: x*0.01, 'flow_temp', "Flow temp.", "temps", 'ms'],
+    [ 'h', lambda x: x*0.01, 'return_temp', "Return temp.", "temps", 'ms'],
+    [ 'h', lambda x: x*0.01, 'dhw_in_temp', "Domestic hot water -in temp.", "temps", 'ms'],
+    [ 'h', lambda x: x*0.01, 'outside_temp', "outside temp.", "temps", 'ms'],
+    [ 'h', lambda x: x*0.01, 'calorifier_temp', "Calorifier temp.", "temps", 'ms'],
+    [ 'h', lambda x: x, 'dunno1', "dunno1", "unknowns", 'ms'],
+    [ 'h', lambda x: x*0.01, 'boiler_control_temp', "Boiler control temp.", "temps", 'ms'],
+    [ 'h', lambda x: x*0.01, 'room_temp', "Room temp.", "temps", 'ms'],                #
+    [ 'h', lambda x: x*0.01, 'cv_setpoint', "CV Setpoint", "temps", 'ms'],             # Vorlauftemperatursollwert Heizung
+    [ 'h', lambda x: x*0.01, 'dhw_setpoint', "Domestic hot water Setpoint", "temps", 'ms'],
+    [ 'h', lambda x: x*0.01, 'room_setpoint', "room temp. Setpoint", "temps", 'ms'],
+    [ 'h', lambda x: x, 'airflow_setpoint', "Airflow setpoint", "flow", 'ms'],
+    [ 'h', lambda x: x, 'airflow_actual', "Airflow actual", "flow", 'ms'],                                                          #24
+    [ 'b', lambda x: x*0.1, 'ionisation_current', "Ionisation Current", "current", 'ms'],                                           #26
+    [ 'h', lambda x: x*0.01, 'intern_setpoint', "Internal Setpoint", "temps", 'ms'],                                                #27
+    [ 'b', lambda x: x, 'output', "output", "flow", 'ms'],                                                                          #29
+    [ 'b', lambda x: x, 'pump_speed', "Pump Speed", "flow", 'ms'],
+    [ 'b', lambda x: x, 'dunno2', "dunno2", "unknown", 'ms'],                                                                       #31
+    [ 'b', lambda x: x, 'setpoint_power', "Setpoint power", "flow", 'ms'],
+    [ 'b', lambda x: x, 'actual_power', "Actual Power", "flow", 'ms'],
+    [ 'b', lambda x: x, 'dunno3', "dunno3", "unknown", 'ms'],
+    [ 'b', lambda x: x, 'dunno4', "dunno4", "unknown", 'ms'],
+    [ 'B', lambda x: byte_to_bit(x ^ 0b00010000),
+        ['DHW heat demand', 'anti_legionella', 'DHW blocking', 'DHW eco, boiler not kept warm', 'Frost protection', 'On/off heat demand', 'modulating_controller_demand', 'modulating_controller'],
         ['WW warmtevraag', 'Anti Legionella', 'WW blokkering', 'WW eco', 'Vorstbeveiliging', 'A/U warmtevraag', 'Mod. warmtevraag', 'Mod. regelaar'],
-        [0,0,0,0,0,0,0,0], 
-        ['g', 'g', 'g', 'g', 'g', 'g', 'g', 'g'], 
+        ["switch", "switch", "switch", "switch", "switch", "switch", "switch", "switch"],
+        ['g', 'g', 'g', 'g', 'g', 'g', 'g', 'g'],
     ],
-    [37, 
-        lambda x: byte_to_bit(x ^ 0b00000011),
-        ['ww_vrijgave', 'cv_vrijgave', 'min_gasdruk', 'tapschakelaar', '', 'ionisatie', 'vrijgave_ingang', 'blokkerende_ingang'],
-        ['', '', '', '', '', '', '', ''],
-        [0,0,0,0,0,0,0,0], 
-        ['g', 'g', 'g', 'g', 'g', 'g', 'g', 'g'], 
+    [ 'B', lambda x: byte_to_bit(x ^ 0b00000011),
+        ['dhw_enabled', 'ch_enabled', 'min_gas_pressure', 'unknown37.4', 'Flow switch for detecting DHW', 'ionisation', 'release_input', 'shutdown_input'],
+        ['dhw_enabled', 'ch_enabled', 'min_gas_pressure', 'unknown37.4', 'Flow switch for detecting DHW', 'ionisation', 'release_input', 'shutdown_input'],
+        ["switch", "switch", "switch", "switch", "switch", "switch", "switch", "switch"],
+        ['g', 'g', 'g', 'g', 'g', 'g', 'g', 'g'],
     ],
-#byte="37" bit="0" expression="A" invert="true" id="open.closed.code" "Blokkerende ingang"
-#byte="37" bit="1" expression="A" invert="true" id="open.closed.code" "Vrijgave ingang"
-#byte="37" bit="2" expression="A" invert="false" id="no.yes.code" "Ionisatie"
-#byte="37" bit="3" expression="A" invert="false" id="open.closed.code" "Tapschakelaar"
-#byte="37" bit="5" expression="A" invert="false" id="open.closed.code" "Min. gasdruk"
-#byte="37" bit="6" expression="A" invert="false" id="no.yes.code" "CV vrijgave"
-#byte="37" bit="7" expression="A" invert="false" id="no.yes.code" "WW vrijgave"
-    [38, lambda x: x, 'bitmap3', "bitmap", 0, 'g'],
-#byte="38" bit="0" expression="A" invert="true" id="closed.open.code" "Gasklep"
-#byte="38" bit="2" expression="A" invert="false" id="off.on.code" "Ontsteking"
-#byte="38" bit="3" expression="A" invert="false" value="0" result.nr="CV" selection value="1" result.nr="WW" "Driewegklep"
-#byte="38" bit="4" expression="A" invert="false" id="open.closed.code" "Externe driewegklep"
-#byte="38" bit="6" expression="A" invert="false" id="open.closed.code" "Externe gasklep"
-    [39, lambda x: x, 'bitmap4', "bitmap", 0, 'g'],
-#byte="39" bit="0" expression="A" invert="false" id="off.on.code" "Pomp"
-#byte="39" bit="1" expression="A" invert="false" id="open.closed.code" "Boilerpomp"
-#byte="39" bit="2" expression="A" invert="false" id="off.on.code" "Externe CV pomp"
-#byte="39" bit="4" expression="A" invert="false" id="open.closed.code" "Status melding"
-#byte="39" bit="7" expression="A" invert="false" id="off.on.code" "OT Smart power"
-    [40, lambda x: x, 'status', "Status", 0, 'g'],
-    [41, lambda x: x, 'vergrendeling_e', "Vergrendeling E", 0, 'g'],
-    [42, lambda x: x, 'blokkering_b', "Blokkering b", 0, 'g'],
-    [43, lambda x: x, 'substatus', "Sub-Status", 0, 'g'],
-    [44, lambda x: x, 'dunno5', "?", 0, 'ms'],
-    [45, lambda x: x, 'dunno6', "?", 0, 'ms'],
-    [46, lambda x: x, 'dunno7', "?", 0, 'ms'],
-    [47, lambda x: x, 'dunno8', "?", 0, 'ms'],
-    [48, lambda x: x, 'dunno9', "?", 0, 'ms'],
-    [49, lambda x: x*0.1, 'waterdruk' ,"Waterdruk", 0, 'ms'],
-    [50, lambda x: x, 'bitmap5', "bitmap", 0, 'g'],
-    [51, lambda x: x*0.01, 'regel_temp', "Regel temp.", 0, 'ms'],
-    [53, lambda x: x*0.01, 'tapdebiet', "Tapdebiet", 0, 'ms'],
-    [00, lambda x: x, 'dunno19', "?", 0, 'ms'],
-    [00, lambda x: x, 'dunno29', "?", 0, 'ms'],
-    [00, lambda x: x, 'dunno39', "?", 0, 'ms'],
-    [00, lambda x: x, 'dunno49', "?", 0, 'ms'],
-    [00, lambda x: x, 'dunno59', "?", 0, 'ms'],
-    [00, lambda x: x, 'dunno59', "?", 0, 'ms'],
-    [00, lambda x: x, 'dunno59', "?", 0, 'ms'],
-    [00, lambda x: x, 'dunno59', "?", 0, 'ms'],
-    [00, lambda x: x, 'dunno59', "?", 0, 'ms'],
+    ['B', lambda x: byte_to_bit(x ^ 0b00000001),
+        ['unknown38.7', 'ext_gas_valve', 'unknown38.5', 'ext_three_way_valve', 'three_way_valve', 'ignition', 'unknown38.1', 'gas_valve'],
+        ['unknown38.7', 'Extern. gas valve', 'unknown38.5', 'Extern. 3-way valve', 'Three way valve', 'ignition', 'unknown38.1', 'gas_valve'],
+        ["switch", "switch", "switch", "switch", "switch", "switch", "switch", "switch"],
+        ['g', 'g', 'g', 'g', 'g', 'g', 'g', 'g'],
+    ],
+    ['B', lambda x: byte_to_bit(x),
+        ['opentherm_smart_power', 'unknown39.6', 'unknown39.5', 'status_report', 'unknown39.3', 'ext_ch_pump', 'calorifier_pump', 'pump'],
+        ['OpenTherm Smart power', 'unknown39.6', 'unknown39.5', 'Status report', 'unknown39.3', 'Extern. CH pump', 'Calorifier Pump', 'Pump'],
+        ["switch", "switch", "switch", "switch", "switch", "switch", "switch", "switch"],
+        ['g', 'g', 'g', 'g', 'g', 'g', 'g', 'g'],
+    ],
+    [ 'b', lambda x: x, 'status', "Status", "mapped", 'g'],                                    #40
+    [ 'b', lambda x: x, 'locking', "Locking", "mapped", 'g'],
+    [ 'b', lambda x: x, 'blocking', "Blocking", "mapped", 'g'],                        #42
+    [ 'b', lambda x: x, 'substatus', "Sub Status", "mapped", 'g'],
+    [ 'h', lambda x: x, 'fan_speed', "Fan speed", "flow", 'ms'],
+    [ 'b', lambda x: x, 'su_state', "SU state", "unkown", 'ms'],
+    [ 'b', lambda x: x, 'su_locking', "SU locking", "unkown", 'ms'],
+    [ 'b', lambda x: x, 'su_blocking', "SU blocking", "unkown", 'ms'],
+    [ 'b', lambda x: x*0.1, 'hydr_pressure' ,"Hydr pressure", "flow", 'ms'],
+    [ 'B', lambda x: byte_to_bit(x),
+        ['dhw_timer_enable', 'ch_timer_enable', 'unknown50.5', 'unknown50.4', 'unknown50.3', 'unknown50.2', 'hru_active', 'unknown50.0'],
+        ['DHW Timer enable', 'CH Timer enable', 'unknown50.5', 'unknown50.4', 'unknown50.3', 'unknown50.2', 'HRU active', 'unknown50.0'],
+        ["switch", "switch", "switch", "switch", "switch", "switch", "switch", "switch"],
+        ['g', 'g', 'g', 'g', 'g', 'g', 'g', 'g'],                                               #50
+    ],
+    [ 'h', lambda x: x*0.01, 'control_temp', "Control temp.", "temps", 'ms'],
+    [ 'h', lambda x: x*0.01, 'dhw_flow', "DHW flow", "flow", 'ms'],                       #53
+    [ 'b', lambda x: x, 'dunno19', "dunno19", "unkown", 'ms'],                           #55
+    [ 'h', lambda x: x*0.1, 'solar_temp', "Solar temp.", "unkown", 'ms'],
+    [ 'h', lambda x: x, 'HMI active', "HMI active", "unkown", 'ms'],
+    [ 'b', lambda x: x, 'ch_setpoint_hmi', "CH setpoint HMI", "temps", 'ms'],                                  #60
+    [ 'b', lambda x: x, 'dhw_setpoint_hmi', "DHW setpoint HMI", "temps", 'ms'],
+    [ 'b', lambda x: x, 'service_mode', "service_mode", "value", 'ms'],                              #62
+    [ 'b', lambda x: x, 'serial_mode', "serial mode", "value", 'ms'],
+#    [00, lambda x: x, None, 'crc', 0, 'g'],
+#    [00, lambda x: x, None, 'stop', 0, 'g'],
 ]
