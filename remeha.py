@@ -8,9 +8,10 @@ import time
 from datetime import datetime
 import csv
 import os
-from datamap import datamap, fmt
+from datamap import datamap
 #from __future__ import print_function
 import sys
+import argparse
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
@@ -105,7 +106,7 @@ class FileLogger:
         row = [ str(frame.timestamp), str(frame.get_source_address()), str(frame.get_type()), str(len(frame_data)) ]
         row += frame_data
         self.csv_writer.writerow(row)
-        self.log_file.flush()
+#        self.log_file.flush()
 
 def log(source_serial, destination_filename):
     ser = serial.Serial(source_serial,
@@ -120,6 +121,7 @@ def log(source_serial, destination_filename):
 
     sample_data_request = bytes([ 0x02, 0xFE, 0x01, 0x05, 0x08, 0x02, 0x01, 0x69, 0xAB, 0x03 ])
     log_file = FileLogger(destination_filename)
+    lastFrameWasValid = False
     while True:
         #sys.stdout.flush()
         ser.write(sample_data_request)
@@ -127,9 +129,10 @@ def log(source_serial, destination_filename):
         frame = Frame(ser)
 
         if frame.isValid:
+            lastFrameWasValid = True
             log_file.log_data(frame)
 
-            print("known data: " + frame.get_framedata().hex())
+            #print("known data: " + frame.get_framedata().hex())
             #print(struct.unpack(fmt, frame.get_framedata()))
 
             #stats = list(parse_data(unpacked))
@@ -142,9 +145,22 @@ def log(source_serial, destination_filename):
                 print ("Error unknown data: " + unknowndata.hex())
                 time.sleep(1)
         else:
-            sys.exit("Error reading frame")
+            if not lastFrameWasValid:
+                sys.exit("Two consecutive read errors")
+            print("Sleep and retry")
+            time.sleep(10)
+            ser.close()
+            time.sleep(10)
+            ser.open()
+            lastFrameWasValid = False
         #assert not ser.inWaiting()
         time.sleep(1)
 
 if __name__ == "__main__":
-    log("/dev/ttyS0", "data.csv")
+    parser = argparse.ArgumentParser(description='Log data from Remeha boiler')
+    #parser.add_argument('--debug',  action='store_true',   help='run in debug mode')
+    parser.add_argument('-d','--device',  default="/dev/ttyS0",  help='serial device the boiler is connected to. i.e. /dev/ttyUSB0 [Default: %(default)s]')
+    parser.add_argument('-o','--output',  default="data.csv",  help='file to log the data to [Default: %(default)s]')
+    args = parser.parse_args()
+
+    log(args.device, args.output)
