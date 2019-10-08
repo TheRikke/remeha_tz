@@ -40,5 +40,5 @@ boiler types more easy.
 To convert the csv with raw values to csv with decoded values use the convert script:
 
 ```
-python -m convert > converted.csv
+python -m remeha_convert --input-file <data csv> converted.csv
 ```
