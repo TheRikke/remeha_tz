@@ -9,5 +9,8 @@ setup(
     author='rikky',
     author_email='',
     python_requires='>=3',
+    data_files=[('config', ['config/translations.json'])],
+    py_modules=['remeha', 'remeha_core', 'mqtt_logger', 'datamap', 'plotlytest', 'remeha_info', 'test_logToMQtt',
+                'convert'],
     description='', install_requires=['dash', 'plotly', 'pyserial', 'paho-mqtt']
 )

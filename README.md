@@ -24,7 +24,7 @@ setup.py.
 ## Usage
 
 ```
-remeha.py -d /dev/ttyUSB0 --output test.csv
+python -m remeha -d /dev/ttyUSB0 --output test.csv
 ```
 
 This will start logging to the local mqtt broker with the topic 'boiler/' and the specified csv
@@ -40,5 +40,5 @@ boiler types more easy.
 To convert the csv with raw values to csv with decoded values use the convert script:
 
 ```
-convert.py > converted.csv
+python -m convert > converted.csv
 ```
