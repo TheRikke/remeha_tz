@@ -10,7 +10,7 @@ def byte_to_bit(input_value):
 class Translator:
     def __init__(self):
         self.translations = {}
-        with open("translations.json", "r") as read_file:
+        with open("config/translations.json", "r") as read_file:
             json_data = json.load(read_file)
             self.translations = json_data['en']
             if locale.getlocale():
@@ -19,10 +19,7 @@ class Translator:
                     self.translations = json_data[two_letter_language]
 
     def translate(self, to_translate, default=None):
-        print(self.translations)
-        print("trying to translate {}".format(to_translate))
         if to_translate in self.translations:
-            print("Found translation {}".format(self.translations[to_translate]))
             return self.translations[to_translate]
         elif default:
             return default
@@ -258,8 +255,6 @@ datamap = [
     ['b', lambda x: x, 'dhw_setpoint_hmi', "DHW setpoint HMI", "temps", 'ms'],
     ['b', lambda x: x, 'service_mode', "service_mode", "value", 'ms'],  # 62
     ['b', lambda x: x, 'serial_mode', "serial mode", "value", 'ms'],
-    #    [00, lambda x: x, None, 'crc', 0, 'g'],
-    #    [00, lambda x: x, None, 'stop', 0, 'g'],
 ]
 
 datamap_identification = [
