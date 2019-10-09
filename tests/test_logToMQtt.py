@@ -22,6 +22,18 @@ class TestLogToMQtt(TestCase):
                            0x80, 0x47, 0x03, 0x40, 0x35, 0x00, 0x00, 0x17,
                            0xef, 0x03])
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # ensure we always use the english texts for tests
+        self.patcher = mock.patch('datamap.locale')
+        self.locale_mock = self.patcher.start()
+        self.addCleanup(self.patcher.stop)
+        self.locale_mock.getlocale.return_value = ['en_US', 'UTF8']
+
+    def __del__(self, *args, **kwargs):
+        self.locale_mock.stop()
+
     def test_log_single_value(self):
         with mock.patch('mqtt_logger.mqttClient') as mqtt_mock:
             mqtt_mock.Client.return_value = mqtt_mock
@@ -66,7 +78,7 @@ class TestLogToMQtt(TestCase):
             mqtt_mock.publish.assert_called_once_with('boiler/status', 'Standby (0min)', retain=True)
             mqtt_mock.reset_mock()
             sut.log_single_value('status', changed_data, datetime.datetime.now())
-            mqtt_mock.publish.assert_called_once_with('boiler/status', 'Kesselstart (0min)', retain=True)
+            mqtt_mock.publish.assert_called_once_with('boiler/status', 'Boiler start (0min)', retain=True)
 
     def test_log_single_value__with_last_change_time_string__updates_time(self):
         """

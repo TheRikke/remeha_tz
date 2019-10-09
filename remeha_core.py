@@ -17,8 +17,8 @@ def parse_data(input_data):
             for sub_index, sub_value in enumerate(value):
                 # if i[0]:
                 yield [datamap[n][2][sub_index], sub_value]
-        elif isinstance(datamap[n][5], dict) and value in datamap[n][5]:
-            yield [datamap[n][2], datamap[n][5][value]]
+        elif isinstance(datamap[n][4], dict) and value in datamap[n][4]:
+            yield [datamap[n][2], datamap[n][4][value]]
         else:
             yield [datamap[n][2], value]
 
@@ -108,10 +108,10 @@ class FrameDecoder:
 
     def decode(self, unpacked_raw_values, value_name):
         decoder_data = self.data_hash[value_name]
-        if isinstance(decoder_data[6], dict):
+        if isinstance(decoder_data[5], dict):
             index_in_unpacked_raw_values = decoder_data[0]
             converted_value = decoder_data[2](unpacked_raw_values[index_in_unpacked_raw_values])
-            return decoder_data[6][converted_value]
+            return decoder_data[5][converted_value]
         else:
             return decoder_data[2](unpacked_raw_values[decoder_data[0]])
 

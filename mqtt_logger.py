@@ -1,12 +1,14 @@
 import paho.mqtt.client as mqttClient
 
+from datamap import Translator
 from remeha_core import FrameDecoder
 
 
 class LogToMQtt:
-    def __init__(self, update_freq_in_s, ):
+    def __init__(self, update_freq_in_s):
         self.update_freq_in_s = update_freq_in_s
         self.client = mqttClient.Client("Python")
+        self.translator = Translator()
         try:
             self.client.connect("localhost")
         except Exception as e:
@@ -43,10 +45,10 @@ class LogToMQtt:
                 previous_value[1] = value
                 previous_value[0] = current_time
 
-            value_format = '{}'
-            if isinstance(value, int):
-                value_format = '{:1.1f}'
-
+            value_format = '{:1.1f}'
+            if isinstance(value, str):
+                value_format = '{}'
+                value = self.translator.translate(value)
             self.client.publish(mqtt_topic,
                                 (value_format + ' ({:0.3g}min)').format(
                                     value,
