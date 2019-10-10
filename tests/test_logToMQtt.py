@@ -51,7 +51,7 @@ class TestLogToMQtt(TestCase):
             sut = LogToMQtt(5)
 
             sut.log_single_value('outside_temp', TestLogToMQtt.unpacked_test_data, datetime.datetime.now())
-            mqtt_mock.publish.assert_called_once_with('boiler/outside_temp', '0.1 (0min)', retain=True)
+            mqtt_mock.publish.assert_called_once_with('boiler/outside_temp', '0.1 (0s)', retain=True)
 
     def test_log_single_value__with_last_change_time_string(self):
         """
@@ -62,7 +62,7 @@ class TestLogToMQtt(TestCase):
             sut = LogToMQtt(5)
 
             sut.log_single_value('status', TestLogToMQtt.unpacked_test_data, datetime.datetime.now())
-            mqtt_mock.publish.assert_called_once_with('boiler/status', 'Standby (0min)', retain=True)
+            mqtt_mock.publish.assert_called_once_with('boiler/status', 'Standby (0s)', retain=True)
 
     def test_log_single_value__with_last_change_time_string_on_change(self):
         """
@@ -75,10 +75,10 @@ class TestLogToMQtt(TestCase):
             sut.log_single_value('status', TestLogToMQtt.unpacked_test_data, datetime.datetime.now())
             changed_data = TestLogToMQtt.unpacked_test_data
             changed_data[26] += 1
-            mqtt_mock.publish.assert_called_once_with('boiler/status', 'Standby (0min)', retain=True)
+            mqtt_mock.publish.assert_called_once_with('boiler/status', 'Standby (0s)', retain=True)
             mqtt_mock.reset_mock()
             sut.log_single_value('status', changed_data, datetime.datetime.now())
-            mqtt_mock.publish.assert_called_once_with('boiler/status', 'Boiler start (0min)', retain=True)
+            mqtt_mock.publish.assert_called_once_with('boiler/status', 'Boiler start (0s)', retain=True)
 
     def test_log_single_value__with_last_change_time_string__updates_time(self):
         """
@@ -91,10 +91,26 @@ class TestLogToMQtt(TestCase):
             current_date = datetime.datetime.now()
             update_date = current_date + datetime.timedelta(minutes=1)
             sut.log_single_value('status', TestLogToMQtt.unpacked_test_data, current_date)
-            mqtt_mock.publish.assert_called_once_with('boiler/status', 'Standby (0min)', retain=True)
+            mqtt_mock.publish.assert_called_once_with('boiler/status', 'Standby (0s)', retain=True)
             mqtt_mock.reset_mock()
             sut.log_single_value('status', TestLogToMQtt.unpacked_test_data, update_date)
             mqtt_mock.publish.assert_called_once_with('boiler/status', 'Standby (1min)', retain=True)
+
+    def test_log_single_value__with_last_change_time_string__updates_time(self):
+        """
+        test case where the value to post with mqtt is increases the "not changed since"
+        """
+        with mock.patch('mqtt_logger.mqttClient') as mqtt_mock:
+            mqtt_mock.Client.return_value = mqtt_mock
+            sut = LogToMQtt(5)
+
+            current_date = datetime.datetime.now()
+            update_date = current_date + datetime.timedelta(hours=10)
+            sut.log_single_value('status', TestLogToMQtt.unpacked_test_data, current_date)
+            mqtt_mock.publish.assert_called_once_with('boiler/status', 'Standby (0s)', retain=True)
+            mqtt_mock.reset_mock()
+            sut.log_single_value('status', TestLogToMQtt.unpacked_test_data, update_date)
+            mqtt_mock.publish.assert_called_once_with('boiler/status', 'Standby (10h)', retain=True)
 
     def test_log(self):
         """

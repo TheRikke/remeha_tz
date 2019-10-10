@@ -4,6 +4,16 @@ from datamap import Translator
 from remeha_core import FrameDecoder
 
 
+def get_human_readable_duration_and_unit(timediff):
+    total_seconds = timediff.total_seconds()
+    if total_seconds <= 90:
+        return total_seconds, 's'
+    elif total_seconds <= (90 * 60):
+        return total_seconds / 60, 'min'
+    elif total_seconds <= (90 * 60 * 60):
+        return total_seconds / (60 * 60), 'h'
+    return total_seconds / (60 * 60 * 24), 'd'
+
 class LogToMQtt:
     def __init__(self, update_freq_in_s):
         self.update_freq_in_s = update_freq_in_s
@@ -49,10 +59,12 @@ class LogToMQtt:
             if isinstance(value, str):
                 value_format = '{}'
                 value = self.translator.translate(value)
+            time_delta, unit = get_human_readable_duration_and_unit(current_time - previous_value[0])
             self.client.publish(mqtt_topic,
-                                (value_format + ' ({:0.3g}min)').format(
+                                (value_format + ' ({:0.3g}{})').format(
                                     value,
-                                    (current_time - previous_value[0]).total_seconds() / 60
+                                    time_delta,
+                                    unit
                                 ),
                                 retain=True)
         else:
