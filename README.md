@@ -40,5 +40,13 @@ boiler types more easy.
 To convert the csv with raw values to csv with decoded values use the convert script:
 
 ```
-python -m remeha_convert --input-file <data csv> converted.csv
+python -m remeha_convert --input-file <data csv> > converted.csv
 ```
+
+## Hardware
+
+Most Remeha boiler use a simple serial connection with 5V TTL. If you have a Raspberry Pi, Arduino or similar, 
+it can most likely be directly connected to the boiler. To connect it to 3.3V like a PC you need a TTL converter or 
+a TTL-USB converter. 
+The remeha tzerra uses a RJ10 aka. 4P4C connector. I've used a old phone cord to connect my Raspberry Pi clone to the
+boiler.
