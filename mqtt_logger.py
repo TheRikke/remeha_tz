@@ -14,6 +14,7 @@ def get_human_readable_duration_and_unit(timediff):
         return total_seconds / (60 * 60), 'h'
     return total_seconds / (60 * 60 * 24), 'd'
 
+
 class LogToMQtt:
     def __init__(self, update_freq_in_s):
         self.update_freq_in_s = update_freq_in_s

@@ -31,8 +31,6 @@ read_lock = threading.Lock()
 fig = None
 
 parser = argparse.ArgumentParser(description='Process some integers.')
-# parser.add_argument('integers', metavar='N', type=int, nargs='+',
-#                    help='an integer for the accumulator')
 parser.add_argument('--verbose', action='store_true', help='increase verbosity')
 parser.add_argument('--debug', action='store_true', help='run flask server in debug mode')
 parser.add_argument('-m', '--max-read', type=int, default=1024, help='maximum to read in kb [Default: %(default)s]')
