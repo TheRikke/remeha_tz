@@ -48,4 +48,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     inputFile = open(args.input_file, mode="r")
-    convert(csv.reader(inputFile))
+
+    try:
+        convert(csv.reader(inputFile))
+    except KeyboardInterrupt:
+        pass
