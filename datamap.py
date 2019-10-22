@@ -14,8 +14,9 @@ class Translator:
         with open(os.path.join(script_directory, "config/translations.json"), "r", encoding='utf8') as read_file:
             json_data = json.load(read_file)
             self.translations = json_data['en']
-            if locale.getlocale():
-                two_letter_language = locale.getlocale()[0][:2]
+            locales = locale.getdefaultlocale()
+            if locales and locales[0]:
+                two_letter_language = locales[0][:2]
                 if two_letter_language in json_data:
                     self.translations = json_data[two_letter_language]
 
@@ -29,6 +30,7 @@ class Translator:
 
     def has_translation(self, to_check):
         return True if to_check in self.translations else False
+
 
 datamap = [
     #  unpack format, int to value transl., variable name, variable unit group, unit

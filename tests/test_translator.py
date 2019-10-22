@@ -15,7 +15,7 @@ class TestTranslator(TestCase):
         Test that all entries in datamap have english translations
         """
         with mock.patch('datamap.locale') as locale_mock:
-            locale_mock.getlocale.return_value = ['en_US', 'UTF8']
+            locale_mock.getdefaultlocale.return_value = ['en_US', 'UTF8']
             translator = Translator()
             for datamap_entry in datamap:
                 value_type_name = datamap_entry[2]
@@ -40,7 +40,7 @@ class TestTranslator(TestCase):
         Test that all entries in datamap have english translations
         """
         with mock.patch('datamap.locale') as locale_mock:
-            locale_mock.getlocale.return_value = ['de_DE', 'UTF8']
+            locale_mock.getdefaultlocale.return_value = ['de_DE', 'UTF8']
             translator = Translator()
             for datamap_entry in datamap:
                 value_type_name = datamap_entry[2]
@@ -58,3 +58,12 @@ class TestTranslator(TestCase):
                             if needs_translation(datamap_entry[4][select_entry]):
                                 self.assertTrue(translator.has_translation(datamap_entry[4][select_entry]),
                                                 msg='No german translation for "{}"'.format(datamap_entry[4][select_entry]))
+
+    def test_translation_if_no_locale_given_use_english(self):
+        """
+        Test that all entries in datamap have english translations
+        """
+        with mock.patch('datamap.locale') as locale_mock:
+            locale_mock.getdefaultlocale.return_value = [None, None]
+            translator = Translator()
+            self.assertEqual(translator.translate('locking_mode'), 'Locking mode.')
