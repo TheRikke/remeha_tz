@@ -1,4 +1,3 @@
-import struct
 import locale
 import json
 import os
@@ -12,7 +11,7 @@ class Translator:
     def __init__(self):
         self.translations = {}
         script_directory = os.path.dirname(__file__)
-        with open(os.path.join(script_directory, "config/translations.json"), "r") as read_file:
+        with open(os.path.join(script_directory, "config/translations.json"), "r", encoding='utf8') as read_file:
             json_data = json.load(read_file)
             self.translations = json_data['en']
             if locale.getlocale():
