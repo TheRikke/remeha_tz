@@ -30,6 +30,7 @@ class LogToMQtt:
             self.frame_decoder = FrameDecoder()
             self.client.loop_start()
         self.previous_values = {}
+        self.last_known_duration = {}
 
     def log(self, frame, runtime_seconds):
         if runtime_seconds % self.update_freq_in_s == 0:
@@ -42,6 +43,7 @@ class LogToMQtt:
                 self.log_single_value('substatus', unpacked_data, frame.timestamp)
                 self.log_single_value('locking', unpacked_data, frame.timestamp)
                 self.log_single_value('blocking', unpacked_data, frame.timestamp)
+                self.log_duration_of_value('status', 'burning_dhw', unpacked_data, frame.timestamp)
             else:
                 print("Temp: %d" % self.frame_decoder.decode(unpacked_data, 'outside_temp'))
 
@@ -49,7 +51,7 @@ class LogToMQtt:
         value = self.frame_decoder.decode(unpacked_data, value_name)
         mqtt_topic = "boiler/" + value_name
         if current_time:
-            if not value_name in self.previous_values:
+            if value_name not in self.previous_values:
                 self.previous_values[value_name] = [current_time, '-']
             previous_value = self.previous_values[value_name]
             if previous_value[1] != value:
@@ -70,3 +72,19 @@ class LogToMQtt:
                                 retain=True)
         else:
             self.client.publish(mqtt_topic, '{:1.1f}'.format(value), retain=True)
+
+    def log_duration_of_value(self, value_name, expected_value, unpacked_data, current_time):
+        value = self.frame_decoder.decode(unpacked_data, value_name)
+        if value_name not in self.last_known_duration:
+            self.last_known_duration[value_name] = None
+        last_known_duration = self.last_known_duration[value_name]
+        if expected_value == value:
+            if last_known_duration is None:
+                # start measurement
+                self.last_known_duration[value_name] = current_time
+        elif last_known_duration is not None:
+            # end measurement
+            time_delta, unit = get_human_readable_duration_and_unit(current_time - last_known_duration)
+            self.client.publish("boiler/" + value_name + '_' + expected_value + '_duration',
+                                '{:0.3g}{}'.format(time_delta, unit),
+                                retain=True)

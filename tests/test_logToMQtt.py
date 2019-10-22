@@ -122,3 +122,34 @@ class TestLogToMQtt(TestCase):
 
             sut.log(Frame(frame_data=TestLogToMQtt.raw_test_data), 0)
             mqtt_mock.publish.assert_called()
+
+    def test_log_duration_of_value_start(self):
+        """
+        test case where
+        """
+        with mock.patch('mqtt_logger.mqttClient') as mqtt_mock:
+            mqtt_mock.Client.return_value = mqtt_mock
+            sut = LogToMQtt(5)
+
+            current_date = datetime.datetime.now()
+            sut.log_duration_of_value('status', 'Standby', TestLogToMQtt.unpacked_test_data, current_date)
+            mqtt_mock.publish.assert_not_called()
+
+    def test_log_duration_of_value_only_updates_after_a_full_cycle(self):
+        """
+        test case where
+        """
+        with mock.patch('mqtt_logger.mqttClient') as mqtt_mock:
+            mqtt_mock.Client.return_value = mqtt_mock
+            sut = LogToMQtt(5)
+
+            current_date = datetime.datetime.now()
+            update_date_1 = current_date + datetime.timedelta(seconds=1)
+            update_date_2 = update_date_1 + datetime.timedelta(seconds=1)
+            # Set status to burning_dhw
+            TestLogToMQtt.unpacked_test_data[26] = 4
+            sut.log_duration_of_value('status', 'burning_dhw', TestLogToMQtt.unpacked_test_data, current_date)
+            sut.log_duration_of_value('status', 'burning_dhw', TestLogToMQtt.unpacked_test_data, update_date_1)
+            TestLogToMQtt.unpacked_test_data[26] = 0
+            sut.log_duration_of_value('status', 'burning_dhw', TestLogToMQtt.unpacked_test_data, update_date_2)
+            mqtt_mock.publish.assert_called_once_with('boiler/status_burning_dhw_duration', '2s', retain=True)
