@@ -88,3 +88,4 @@ class LogToMQtt:
             self.client.publish("boiler/" + value_name + '_' + expected_value + '_duration',
                                 '{:0.3g}{}'.format(time_delta, unit),
                                 retain=True)
+            self.last_known_duration[value_name] = None
