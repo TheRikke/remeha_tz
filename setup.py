@@ -1,8 +1,13 @@
 from setuptools import setup
 
+from os import path
+this_directory = path.abspath(path.dirname(__file__))
+with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
+
 setup(
     name='remeha_tz',
-    version='0.1',
+    version='0.11',
     packages=[],
     url='https://github.com/TheRikke/remeha_tz',
     license='',
@@ -13,5 +18,7 @@ setup(
     py_modules=['remeha', 'remeha_core', 'mqtt_logger', 'datamap', 'plotlytest', 'remeha_info', 'remeha_convert'],
     scripts=['remeha.py', 'plotlytest.py', 'remeha_info.py', 'remeha_convert.py'],
     test_suite='tests',
-    description='', install_requires=['dash', 'plotly', 'pyserial', 'paho-mqtt']
+    description='', install_requires=['dash', 'plotly', 'pyserial', 'paho-mqtt'],
+    long_description=long_description,
+    long_description_content_type='text/markdown'
 )
