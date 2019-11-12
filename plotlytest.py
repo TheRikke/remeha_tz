@@ -217,10 +217,10 @@ for map_entry in datamap:
             value_index += 1
     else:
         data += [[]]
-        data_description += [[str(translator.translate(map_entry[2], map_entry[3])), str(map_entry[4]), map_entry[5]]]
+        data_description += [[str(translator.translate(map_entry[2])), str(map_entry[3]), map_entry[4]]]
         value_index += 1
 
-    if isinstance(map_entry[5], dict):
+    if isinstance(map_entry[4], dict):
         # print("Add index: {}".format(value_index))
         data_mapped_values[value_index] = []
 
