@@ -15,8 +15,16 @@ diagrams and dash to distribute it with a simple webservice.
 You need ***Python 3*** installed. There is a setup.py provided, which you could call directly or
 even better use "pip" to install:
 
+For the latest released version:
+
 ```
-pip install <path to remeha_tz repository>
+pip install remeha-tz
+```
+
+or for the latest version on github:
+
+```
+pip install git+https://github.com/TheRikke/remeha_tz.git@master
 ```
 
 If you don't need the plotly diagrams, You can remove the 'dash' and 'plotly' dependencies from
