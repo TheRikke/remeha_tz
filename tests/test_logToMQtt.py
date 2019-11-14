@@ -112,6 +112,18 @@ class TestLogToMQtt(TestCase):
             sut.log_single_value('status', TestLogToMQtt.unpacked_test_data, update_date)
             mqtt_mock.publish.assert_called_once_with('boiler/status', 'Standby (10h)', retain=True)
 
+    def test_log_single_value__scale(self):
+        """
+        test case where the value to post with mqtt is increases the "not changed since"
+        """
+        with mock.patch('mqtt_logger.mqttClient') as mqtt_mock:
+            mqtt_mock.Client.return_value = mqtt_mock
+            sut = LogToMQtt(5)
+
+            TestLogToMQtt.unpacked_test_data[6] = 100  # 0.1
+            sut.log_single_value('outside_temp', TestLogToMQtt.unpacked_test_data, scale_to_percent=[0, 1])
+            mqtt_mock.publish.assert_called_once_with('boiler/outside_temp', '10.0', retain=True)
+
     def test_log(self):
         """
         test case where the value to post with mqtt is a string

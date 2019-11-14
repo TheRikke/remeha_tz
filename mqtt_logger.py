@@ -44,12 +44,16 @@ class LogToMQtt:
                 self.log_single_value('locking', unpacked_data, frame.timestamp)
                 self.log_single_value('blocking', unpacked_data, frame.timestamp)
                 self.log_duration_of_value('status', 'burning_dhw', unpacked_data, frame.timestamp)
+                self.log_single_value('calorifier_temp', unpacked_data)
+                self.log_single_value('airflow_actual', unpacked_data, scale_to_percent=[0, 2900])
             else:
                 print("Temp: %d" % self.frame_decoder.decode(unpacked_data, 'outside_temp'))
 
-    def log_single_value(self, value_name, unpacked_data, current_time=None):
+    def log_single_value(self, value_name, unpacked_data, current_time=None, scale_to_percent=None):
         value = self.frame_decoder.decode(unpacked_data, value_name)
         mqtt_topic = "boiler/" + value_name
+        if scale_to_percent:
+            value = ((value - scale_to_percent[0]) / (scale_to_percent[1] - scale_to_percent[0])) * 100
         if current_time:
             if value_name not in self.previous_values:
                 self.previous_values[value_name] = [current_time, '-']
