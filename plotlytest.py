@@ -117,12 +117,17 @@ def gen_plot(n):
                         trace += [go.Scatter(x=data[0], y=data[index], yaxis='y3', name=data_description[index][0],
                                              line=dict(width=1))]
                     elif data_description[index][1] == "flow":
-                        trace += [go.Scatter(x=data[0], y=data[index], yaxis='y2', name=data_description[index][0], line=dict(width=1))]
-                    elif data_description[index][1] == "switch" or data_description[index][1] == "mapped" or data_description[index][1] == "unknown":
+                        trace += [go.Scatter(x=data[0], y=data[index], yaxis='y2',
+                                             name=data_description[index][0], line=dict(width=1))]
+                    elif data_description[index][1] == "switch" or\
+                            data_description[index][1] == "mapped" or\
+                            data_description[index][1] == "unknown":
                         if index in data_mapped_values:
-                            trace += [go.Scatter(x=data[0], y=data[index], text=data_mapped_values[index], name=data_description[index][0], line=dict(width=1))]
+                            trace += [go.Scatter(x=data[0], y=data[index], text=data_mapped_values[index],
+                                                 name=data_description[index][0], line=dict(width=1))]
                         else:
-                            trace += [go.Scatter(x=data[0], y=data[index], name=data_description[index][0], line=dict(width=1))]
+                            trace += [go.Scatter(x=data[0], y=data[index], name=data_description[index][0],
+                                                 line=dict(width=1))]
                     log(1, "traces created")
                     layout = go.Layout(
                         title="Heating at Home",
@@ -168,19 +173,19 @@ def read_data(data, csv_reader):
 
             data[0] += [row[0]]
             for index, value in enumerate(parsed_data):
-                    data[index + 1] += [value]
+                data[index + 1] += [value]
 
-                    #print(index)
-                    #print(datamap[index])
-                    if index + 1 in data_mapped_values:
-                        #print(data_mapped_values)
-                        #print(data_description[index + 1])
+                # print(index)
+                # print(datamap[index])
+                if index + 1 in data_mapped_values:
+                    # print(data_mapped_values)
+                    # print(data_description[index + 1])
 
-                        data_mapped_values[index + 1] += [data_description[index + 1][2][value]]
+                    data_mapped_values[index + 1] += [data_description[index + 1][2][value]]
         else:
             skipCount += 1
-    #print("New rows: %d" % readCount)
-    #print(data_mapped_values)
+    # print("New rows: %d" % readCount)
+    # print(data_mapped_values)
 
     disabled_counter = 0
     for index, data_element in enumerate(data):
