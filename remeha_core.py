@@ -117,3 +117,6 @@ class FrameDecoder:
 
     def decode_all(self, packed_raw_values):
         return list(parse_data(struct.unpack(self.unpack_with_format, packed_raw_values)))
+
+    def get_unpacked_data(self, packed_raw_values):
+        return list(struct.unpack(self.unpack_with_format, packed_raw_values))
