@@ -18,7 +18,7 @@ setup(
     py_modules=['remeha', 'remeha_core', 'mqtt_logger', 'datamap', 'plotlytest', 'remeha_info', 'remeha_convert'],
     scripts=['remeha.py', 'plotlytest.py', 'remeha_info.py', 'remeha_convert.py'],
     test_suite='tests',
-    description='', install_requires=['dash', 'plotly', 'pyserial', 'paho-mqtt'],
+    description='', install_requires=['dash', 'plotly', 'pyserial', 'paho-mqtt', 'mysql-connector-python'],
     long_description=long_description,
     long_description_content_type='text/markdown'
 )

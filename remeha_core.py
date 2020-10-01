@@ -1,8 +1,11 @@
+import logging
 from datetime import datetime
 import struct
 import sys
 
 from datamap import datamap
+
+log = logging.getLogger(__name__)
 
 
 def eprint(*arguments, **kwargs):

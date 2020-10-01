@@ -57,13 +57,13 @@ datamap = [
     ['b', lambda x: x       , 'unknown34', "unknown", 'ms'],
     ['b', lambda x: x       , 'unknown35', "unknown", 'ms'],   # 35
     ['B', lambda x: byte_to_bit(x ^ 0b00010000),
-     ['dwh_heat_demand', 'anti_legionella', 'dhw_blocking', 'DHW eco, boiler not kept warm', 'frost_protection',
+     ['dwh_heat_demand', 'anti_legionella', 'dhw_blocking', 'dhw_eco_boiler_not_kept_warm', 'frost_protection',
       'heat_demand', 'modulating_controller_demand', 'modulating_controller'],
      ["switch", "switch", "switch", "switch", "switch", "switch", "switch", "switch"],
      ['g', 'g', 'g', 'g', 'g', 'g', 'g', 'g'],
      ],  # 36
     ['B', lambda x: byte_to_bit(x ^ 0b00000011),
-     ['dhw_enabled', 'ch_enabled', 'min_gas_pressure', 'unknown37.4', 'Flow switch for detecting DHW', 'ionisation',
+     ['dhw_enabled', 'ch_enabled', 'min_gas_pressure', 'unknown37.4', 'flow_switch_for_detecting_dhw', 'ionisation',
       'release_input', 'shutdown_input'],
      ["switch", "switch", "switch", "switch", "switch", "switch", "switch", "switch"],
      ['g', 'g', 'g', 'g', 'g', 'g', 'g', 'g'],

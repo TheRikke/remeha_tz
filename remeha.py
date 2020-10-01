@@ -5,9 +5,16 @@ import csv
 import os
 import sys
 import argparse
+import logging
 
+from database_logger import DatabaseLogger
 from mqtt_logger import LogToMQtt
 from remeha_core import Frame
+
+FORMAT = ('%(asctime)-15s %(threadName)-15s '
+          '%(levelname)-8s %(module)-15s:%(lineno)-8s %(message)s')
+logging.basicConfig(format=FORMAT)
+log = logging.getLogger()
 
 """
 All I known about a frame:
@@ -53,7 +60,7 @@ class FileLogger:
         self.csv_writer.writerow(row)
 
 
-def log(source_serial, destination_filename, mqtt_freq):
+def log_remeha(source_serial, destination_filename, mqtt_freq):
     ser = serial.Serial(source_serial,
                         9600,
                         timeout=10,
@@ -64,6 +71,7 @@ def log(source_serial, destination_filename, mqtt_freq):
     if not ser.isOpen():
         sys.exit("Could not open serial: " + source_serial)
 
+    log_db = DatabaseLogger()
     log_mqtt = LogToMQtt(mqtt_freq)
     log_file = FileLogger(destination_filename)
 
@@ -79,6 +87,7 @@ def log(source_serial, destination_filename, mqtt_freq):
             last_frame_was_valid = True
             log_file.log_data(frame)
             log_mqtt.log(frame, runtime_seconds)
+            log_db.log_data(frame)
 
             while ser.inWaiting():
                 unknown_data = ser.read(ser.inWaiting())
@@ -104,6 +113,15 @@ if __name__ == "__main__":
     parser.add_argument('-o', '--output', default="data.csv", help='file to log the data to [Default: %(default)s]')
     parser.add_argument('-m', '--mqtt_freq', type=int, default="15",
                         help='frequency for publishing MQTT data in seconds [Default: %(default)s]')
+    parser.add_argument('-v', '--verbose', action="count",
+                        help='increase verbosity')
     args = parser.parse_args()
 
-    log(args.device, args.output, args.mqtt_freq)
+    if not args.verbose or args.verbose == 0:
+        log.setLevel(logging.WARNING)
+    elif args.verbose > 1:
+        log.setLevel(logging.DEBUG)
+    else:
+        log.setLevel(logging.INFO)
+
+    log_remeha(args.device, args.output, args.mqtt_freq)
