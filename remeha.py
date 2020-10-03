@@ -6,6 +6,7 @@ import os
 import sys
 import argparse
 import logging
+import atexit
 
 from database_logger import DatabaseLogger
 from mqtt_logger import LogToMQtt
@@ -44,6 +45,11 @@ frame has a two byte (crc16) checksum before the end magic (0x03).
 """
 
 
+def clean_up(instances_to_close):
+    for instance in instances_to_close:
+        instance.close()
+
+
 class FileLogger:
     def __init__(self, filename):
         is_new_file = not os.path.isfile(filename)
@@ -58,6 +64,9 @@ class FileLogger:
         row = [str(frame.timestamp), str(frame.get_source_address()), str(frame.get_type()), str(len(frame_data))]
         row += frame_data
         self.csv_writer.writerow(row)
+
+    def close(self):
+        self.log_file.close()
 
 
 def log_remeha(source_serial, destination_filename, mqtt_freq):
@@ -75,35 +84,42 @@ def log_remeha(source_serial, destination_filename, mqtt_freq):
     log_mqtt = LogToMQtt(mqtt_freq)
     log_file = FileLogger(destination_filename)
 
+    clean_up_handler = atexit.register(clean_up, [log_db, log_mqtt, log_file])
     sample_data_request: bytes = bytes([0x02, 0xFE, 0x01, 0x05, 0x08, 0x02, 0x01, 0x69, 0xAB, 0x03])
     last_frame_was_valid = True
     runtime_seconds = 0
-    while True:
-        # sys.stdout.flush()
-        ser.write(sample_data_request)
+    try:
+        while True:
+            # sys.stdout.flush()
+            ser.write(sample_data_request)
 
-        frame = Frame(io_source=ser)
-        if frame.isValid:
-            last_frame_was_valid = True
-            log_file.log_data(frame)
-            log_mqtt.log(frame, runtime_seconds)
-            log_db.log_data(frame)
+            frame = Frame(io_source=ser)
+            if frame.isValid:
+                last_frame_was_valid = True
+                log_file.log_data(frame)
+                log_mqtt.log(frame, runtime_seconds)
+                log_db.log_data(frame)
 
-            while ser.inWaiting():
-                unknown_data = ser.read(ser.inWaiting())
-                print("Error unknown data: " + unknown_data.hex())
-                time.sleep(1)
-        else:
-            if not last_frame_was_valid:
-                sys.exit("Two consecutive read errors")
-            print("Sleep and retry")
-            time.sleep(10)
-            ser.close()
-            time.sleep(10)
-            ser.open()
-            last_frame_was_valid = False
-        runtime_seconds += 1
-        time.sleep(1)
+                while ser.inWaiting():
+                    unknown_data = ser.read(ser.inWaiting())
+                    print("Error unknown data: " + unknown_data.hex())
+                    time.sleep(1)
+            else:
+                if not last_frame_was_valid:
+                    sys.exit("Two consecutive read errors")
+                print("Sleep and retry")
+                time.sleep(10)
+                ser.close()
+                time.sleep(10)
+                ser.open()
+                last_frame_was_valid = False
+            runtime_seconds += 1
+            time.sleep(1)
+
+    finally:
+        log_db.close()
+        log_file.close()
+        atexit.unregister(clean_up_handler)
 
 
 if __name__ == "__main__":

@@ -104,3 +104,11 @@ class DatabaseLogger:
         if self.number_of_uncommitted_records > 80:
             self.database.commit()
             self.number_of_uncommitted_records = 0
+
+    def close(self):
+        if self.number_of_uncommitted_records > 0:
+            log.info("Ctr-c detected. Write remaining data.")
+            self.database.commit()
+            self.number_of_uncommitted_records = 0
+            self.database.close()
+

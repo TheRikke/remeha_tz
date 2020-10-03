@@ -93,3 +93,6 @@ class LogToMQtt:
                                 '{:0.3g}{}'.format(time_delta, unit),
                                 retain=True)
             self.last_known_duration[value_name] = None
+
+    def close(self):
+        pass
