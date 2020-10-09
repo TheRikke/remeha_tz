@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import json
+
 import serial
 import time
 import csv
@@ -69,7 +71,7 @@ class FileLogger:
         self.log_file.close()
 
 
-def log_remeha(source_serial, destination_filename, mqtt_freq):
+def log_remeha(source_serial, destination_filename, mqtt_freq, config):
     ser = serial.Serial(source_serial,
                         9600,
                         timeout=10,
@@ -80,7 +82,7 @@ def log_remeha(source_serial, destination_filename, mqtt_freq):
     if not ser.isOpen():
         sys.exit("Could not open serial: " + source_serial)
 
-    log_db = DatabaseLogger()
+    log_db = DatabaseLogger(config)
     log_mqtt = LogToMQtt(mqtt_freq)
     log_file = FileLogger(destination_filename)
 
@@ -122,6 +124,30 @@ def log_remeha(source_serial, destination_filename, mqtt_freq):
         atexit.unregister(clean_up_handler)
 
 
+def read_config():
+    config = None
+    config_path = [
+        os.environ.get("REMEHA_CONF"),
+        os.path.join(os.curdir, os.path.join('remeha.conf')),
+        os.path.join(os.path.expanduser("~"), '.remeha.conf'),
+        os.path.join(os.path.expanduser("~"), 'remeha.conf'),
+        "/etc/remeha/remeha.conf",
+        os.path.join(os.path.dirname(__file__), "config/remeha.conf")
+    ]
+    for path in config_path:
+        if path:
+            try:
+                with open(path) as source:
+                    config = json.load(source)
+                    break
+            except IOError:
+                pass
+            except json.decoder.JSONDecodeError as json_error:
+                log.error("Error in config file %s: %s" % (path, json_error))
+                break
+    return config
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Log data from Remeha boiler')
     parser.add_argument('-d', '--device', default="/dev/ttyS0",
@@ -140,4 +166,4 @@ if __name__ == "__main__":
     else:
         log.setLevel(logging.INFO)
 
-    log_remeha(args.device, args.output, args.mqtt_freq)
+    log_remeha(args.device, args.output, args.mqtt_freq, read_config())

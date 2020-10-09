@@ -3,8 +3,8 @@
 ## Features
 
 This logger is meant to read data from a Remeha Boiler and distribute it to different backends.
-Currently it only supports reading from a ***Remeha Tzerra*** and writing to a ***MQTT broker*** or a
-***CSV file***. It should be easy to add support for other Remeha Boilers.
+Currently it only supports reading from a ***Remeha Tzerra*** and writing to a ***MQTT broker***, a
+***CSV file***, and/or MySQL/MariaDB. It should be easy to add support for other Remeha Boilers.
 
 There is an additional Python Script (plotlytest.py) which can read the csv file written by the
 logger and render some nice diagrams. As the name suggests it uses Plotly to do interactive
@@ -26,6 +26,9 @@ or for the latest version on github:
 ```
 pip install git+https://github.com/TheRikke/remeha_tz.git@master
 ```
+
+If you want to log to a mysql/mariadb, please copy config/remeha.conf to ~/remeha.conf, ~/.remeha.conf or /etc/remeha/remeha.conf
+and change the database parameter in there.
 
 If you don't need the plotly diagrams, You can remove the 'dash' and 'plotly' dependencies from
 setup.py.
