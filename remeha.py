@@ -87,7 +87,7 @@ def log_remeha(source_serial, destination_filename, mqtt_freq, config):
     log_file = FileLogger(destination_filename)
 
     clean_up_handler = atexit.register(clean_up, [log_db, log_mqtt, log_file])
-    sample_data_request: bytes = bytes([0x02, 0xFE, 0x01, 0x05, 0x08, 0x02, 0x01, 0x69, 0xAB, 0x03])
+    sample_data_request = bytes([0x02, 0xFE, 0x01, 0x05, 0x08, 0x02, 0x01, 0x69, 0xAB, 0x03])
     last_frame_was_valid = True
     runtime_seconds = 0
     try:
