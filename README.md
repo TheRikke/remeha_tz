@@ -4,7 +4,7 @@
 
 This logger is meant to read data from a Remeha Boiler and distribute it to different backends.
 Currently it only supports reading from a ***Remeha Tzerra*** and writing to a ***MQTT broker***, a
-***CSV file***, and/or MySQL/MariaDB. It should be easy to add support for other Remeha Boilers.
+***CSV file***, and/or ***MySQL/MariaDB***. It should be easy to add support for other Remeha Boilers.
 
 There is an additional Python Script (plotlytest.py) which can read the csv file written by the
 logger and render some nice diagrams. As the name suggests it uses Plotly to do interactive
@@ -61,3 +61,13 @@ it can most likely be directly connected to the boiler. To connect it to 3.3V li
 a TTL-USB converter. 
 The remeha tzerra uses a RJ10 aka. 4P4C connector. I've used a old phone cord to connect my Raspberry Pi clone to the
 boiler.
+
+https://en.wikipedia.org/wiki/Modular_connector#4P4C
+
+Connect the number pins of the 4P4C connector to the following pins of your board or TTL-USB converter:
+
+* pin 1 - GND
+* pin 2 - TX
+* pin 3 - RX
+* pin 4 - VCC 5 (I did not connect this one. Just for reference.)
+
