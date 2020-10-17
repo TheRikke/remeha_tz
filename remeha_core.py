@@ -57,7 +57,8 @@ class Frame:
             return
 
         if self.get_checksum() != struct.unpack("<H", self.frame[-3:-1])[0]:
-            eprint("Checksum incorrect. Should be {:x}, but is {:x}".format(self.get_checksum(), struct.unpack("<H", self.frame[-3:-1])[0]))
+            eprint("Checksum incorrect. Should be {:x}, but is {:x}"
+                   .format(self.get_checksum(), struct.unpack("<H", self.frame[-3:-1])[0]))
             return
 
         self.isValid = True

@@ -89,14 +89,14 @@ class TestLogToMQtt(TestCase):
             sut = LogToMQtt(5)
 
             current_date = datetime.datetime.now()
-            update_date = current_date + datetime.timedelta(minutes=1)
+            update_date = current_date + datetime.timedelta(minutes=2)
             sut.log_single_value('status', TestLogToMQtt.unpacked_test_data, current_date)
             mqtt_mock.publish.assert_called_once_with('boiler/status', 'Standby (0s)', retain=True)
             mqtt_mock.reset_mock()
             sut.log_single_value('status', TestLogToMQtt.unpacked_test_data, update_date)
-            mqtt_mock.publish.assert_called_once_with('boiler/status', 'Standby (1min)', retain=True)
+            mqtt_mock.publish.assert_called_once_with('boiler/status', 'Standby (2min)', retain=True)
 
-    def test_log_single_value__with_last_change_time_string__updates_time(self):
+    def test_log_single_value__with_last_change_time_string__long_updates_time(self):
         """
         test case where the value to post with mqtt is increases the "not changed since"
         """

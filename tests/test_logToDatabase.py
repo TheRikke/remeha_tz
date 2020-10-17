@@ -52,7 +52,7 @@ class TestLogToDatabase(TestBase):
     def test_do_not_crash_on_access_denied(self, connect_mock):
         config = '{ "database_logger": { "enabled": true, "host": "1", "user_name": "2", "password": "3" } }'
         connect_mock.side_effect = mysql.connector.errors.ProgrammingError()
-        sut = DatabaseLogger(json.loads(config))
+        DatabaseLogger(json.loads(config))
 
     @patch('database_logger.mysql.connector')
     def test_when_database_usage_disabled_then_do_not_use_database(self, connector_mock):

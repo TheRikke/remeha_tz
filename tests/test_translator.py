@@ -34,7 +34,6 @@ class TestTranslator(TestCase):
                                 self.assertTrue(translator.has_translation(datamap_entry[4][select_entry]),
                                                 msg='No english translation for "{}"'.format(datamap_entry[4][select_entry]))
 
-
     def test_datamap_translation_de(self):
         """
         Test that all entries in datamap have english translations

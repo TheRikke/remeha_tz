@@ -14,5 +14,3 @@ if '-v' in sys.argv:
 else:
     level = logging.CRITICAL
 logging.basicConfig(stream=sys.stderr, level=level)
-
-

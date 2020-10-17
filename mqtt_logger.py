@@ -22,7 +22,7 @@ class LogToMQtt:
         self.translator = Translator()
         try:
             self.client.connect("localhost")
-        except Exception as e:
+        except Exception:
             self.client = None
 
         self.frame_decoder = None
