@@ -12,7 +12,7 @@ def eprint(*arguments, **kwargs):
     print(*arguments, file=sys.stderr, **kwargs)
 
 
-def parse_data(input_data):
+def parse_data(input_data, map_resolve=True):
     for n, x in enumerate(input_data):
         value = datamap[n][1](x)
         #        print("Value: " + str(value))
@@ -20,7 +20,7 @@ def parse_data(input_data):
             for sub_index, sub_value in enumerate(value):
                 # if i[0]:
                 yield [datamap[n][2][sub_index], sub_value]
-        elif isinstance(datamap[n][4], dict) and value in datamap[n][4]:
+        elif map_resolve and isinstance(datamap[n][4], dict) and value in datamap[n][4]:
             yield [datamap[n][2], datamap[n][4][value]]
         else:
             yield [datamap[n][2], value]
