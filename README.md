@@ -32,6 +32,46 @@ and change the database parameter in there.
 
 If you don't need the plotly diagrams, You can remove the 'dash' and 'plotly' dependencies from
 setup.py.
+
+## Config
+
+The tool reads the config from '/etc/remeha/remeha.conf', ~/.remeha.conf or a config specified in the environment variable REMEHA_CONF. For an example see 
+config/remeha.conf
+
+```
+{
+  "database_logger": {
+    "enabled": false,
+    "host": "testserver.local",
+    "user_name": "database_user",
+    "password": "secret_passwort"
+  },
+  "mqtt_logger": {
+    "enabled": true,
+    "host": "localhost",
+    "port": 1883,
+    "comment-topic": "specify the topic every value will be published to.",
+    "topic": "boiler/",
+    "log_values": ["outside_temp", "flow_temp", "return_temp", "calorifier_temp", "airflow_actual"],
+    "log_values_with_timestamp": [ "status", "substatus", "locking", "blocking", "airflow_actual"],
+    "Comment-Log_values_with_duration": "Log how long a specific value has been active. Useful to log something like 'How long did the boiler burn to heat the domestic hot water supply'",
+    "log_values_with_duration": [
+      {
+        "value_name": "status",
+        "expected_value": "burning_dhw"
+      }
+    ],
+    "scale_to_percent": [
+      {
+        "value_name": "airflow_actual",
+        "lower_limit": 0,
+        "upper_limit": 2900
+      }
+    ]
+  }
+}
+```
+
 ## Usage
 
 ```
@@ -39,7 +79,7 @@ remeha.py -d /dev/ttyUSB0 --output test.csv
 ```
 
 This will start logging to the local mqtt broker with the topic 'boiler/' and the specified csv
-file. See ```--help``` for more options.
+file. See ```--help``` for more options and config/remeha.conf for the values logged per default.
 
 ## Other useful information
 

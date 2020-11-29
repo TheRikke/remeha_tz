@@ -31,7 +31,7 @@ class TestRemeha(TestBase):
             config = read_config()
         assert config is None
 
-    def test_read_default_config_if_PYCURRENT_CONF_not_set(self):
+    def test_read_default_config_if_REMEHA_CONF_not_set(self):
         with mock.patch.dict('os.environ', clear=True):
             config = read_config()
-        assert config is None
+        assert config is not None

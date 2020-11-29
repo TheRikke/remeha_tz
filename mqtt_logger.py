@@ -1,7 +1,9 @@
+import logging
 import paho.mqtt.client as mqttClient
-
 from datamap import Translator
 from remeha_core import FrameDecoder
+
+log = logging.getLogger(__name__)
 
 
 def get_human_readable_duration_and_unit(timediff):
@@ -16,36 +18,71 @@ def get_human_readable_duration_and_unit(timediff):
 
 
 class LogToMQtt:
-    def __init__(self, update_freq_in_s):
-        self.update_freq_in_s = update_freq_in_s
-        self.client = mqttClient.Client("Python")
-        self.translator = Translator()
-        try:
-            self.client.connect("localhost")
-        except Exception:
-            self.client = None
+    def __init__(self, config, update_freq_in_s):
+        if config and 'mqtt_logger' in config:
+            if self.process_config(config['mqtt_logger']) and self.config['enabled']:
+                self.update_freq_in_s = update_freq_in_s
+                self.client = mqttClient.Client("Python")
+                self.translator = Translator()
+                try:
+                    self.client.connect(host=self.config['host'], port=self.config['port'])
+                except Exception:
+                    self.client = None
 
-        self.frame_decoder = None
-        if self.client:
-            self.frame_decoder = FrameDecoder()
-            self.client.loop_start()
-        self.previous_values = {}
-        self.last_known_duration = {}
+                self.frame_decoder = None
+                if self.client:
+                    self.frame_decoder = FrameDecoder()
+                    self.client.loop_start()
+                self.previous_values = {}
+                self.last_known_duration = {}
+            else:
+                log.info("mqtt_logger disabled in config")
+                self.client = None
+        else:
+            log.error('"mqtt_logger" section in config missing')
+
+    def process_config(self, config):
+        self.config = config
+        self.log_single_value_list = []
+        self.log_with_timestamp_list = []
+        self.log_duration_list = []
+        self.scaled_values = {}
+        if 'enabled' not in config:
+            self.config = None
+            log.error('missing "enabled" in "mqtt_logger" config section')
+        if 'host' not in config:
+            self.config = None
+            log.error('missing "host" in "mqtt_logger" config section')
+        if 'port' not in config:
+            self.config = None
+            log.error('missing "port" in "mqtt_logger" config section')
+        if 'log_values' in config:
+            self.log_single_value_list = config['log_values']
+        if 'log_values_with_duration' in config:
+            self.log_duration_list = config['log_values_with_duration']
+        if 'log_values_with_timestamp' in config:
+            self.log_with_timestamp_list = config['log_values_with_timestamp']
+        if 'scale_to_percent' in config:
+            for scales in config['scale_to_percent']:
+                self.scaled_values[scales['value_name']] = [scales['lower_limit'], scales['upper_limit']]
+        if not self.log_duration_list and not self.log_single_value_list and not self.log_with_timestamp_list:
+            self.config = None
+            log.error('Nothing to log. Specified "log_values", "log_values_with_timestamp" or "log_values_with_duration" to "mqtt_logger" config section')
+        return self.config
 
     def log(self, frame, runtime_seconds):
         if runtime_seconds % self.update_freq_in_s == 0:
             unpacked_data = frame.get_parseddata()
             if self.client:
-                self.log_single_value('outside_temp', unpacked_data)
-                self.log_single_value('flow_temp', unpacked_data)
-                self.log_single_value('return_temp', unpacked_data)
-                self.log_single_value('status', unpacked_data, frame.timestamp)
-                self.log_single_value('substatus', unpacked_data, frame.timestamp)
-                self.log_single_value('locking', unpacked_data, frame.timestamp)
-                self.log_single_value('blocking', unpacked_data, frame.timestamp)
-                self.log_duration_of_value('status', 'burning_dhw', unpacked_data, frame.timestamp)
-                self.log_single_value('calorifier_temp', unpacked_data)
-                self.log_single_value('airflow_actual', unpacked_data, scale_to_percent=[0, 2900])
+                for value_name in self.log_single_value_list:
+                    if value_name in self.scaled_values:
+                        self.log_single_value(value_name, unpacked_data, scale_to_percent=[self.scaled_values[value_name][0], self.scaled_values[value_name][1]])
+                    else:
+                        self.log_single_value(value_name, unpacked_data)
+                for value_name in self.log_with_timestamp_list:
+                    self.log_single_value(value_name, unpacked_data, frame.timestamp)
+                for entry in self.log_duration_list:
+                    self.log_duration_of_value(entry['value_name'], entry['expected_value'], unpacked_data, frame.timestamp)
             else:
                 print("Temp: %d" % self.frame_decoder.decode(unpacked_data, 'outside_temp'))
 
@@ -54,6 +91,10 @@ class LogToMQtt:
         mqtt_topic = "boiler/" + value_name
         if scale_to_percent:
             value = ((value - scale_to_percent[0]) / (scale_to_percent[1] - scale_to_percent[0])) * 100
+        value_format = '{:1.1f}'
+        if isinstance(value, str):
+            value_format = '{}'
+            value = self.translator.translate(value)
         if current_time:
             if value_name not in self.previous_values:
                 self.previous_values[value_name] = [current_time, '-']
@@ -62,10 +103,6 @@ class LogToMQtt:
                 previous_value[1] = value
                 previous_value[0] = current_time
 
-            value_format = '{:1.1f}'
-            if isinstance(value, str):
-                value_format = '{}'
-                value = self.translator.translate(value)
             time_delta, unit = get_human_readable_duration_and_unit(current_time - previous_value[0])
             self.client.publish(mqtt_topic,
                                 (value_format + ' ({:0.3g}{})').format(
@@ -75,7 +112,7 @@ class LogToMQtt:
                                 ),
                                 retain=True)
         else:
-            self.client.publish(mqtt_topic, '{:1.1f}'.format(value), retain=True)
+            self.client.publish(mqtt_topic, value_format.format(value), retain=True)
 
     def log_duration_of_value(self, value_name, expected_value, unpacked_data, current_time):
         value = self.frame_decoder.decode(unpacked_data, value_name)
