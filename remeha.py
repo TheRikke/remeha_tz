@@ -83,7 +83,7 @@ def log_remeha(source_serial, destination_filename, mqtt_freq, config):
         sys.exit("Could not open serial: " + source_serial)
 
     log_db = DatabaseLogger(config)
-    log_mqtt = LogToMQtt(config, mqtt_freq)
+    log_mqtt = LogToMQtt(config, mqtt_freq, lambda message: log_db.log_manual(message))
     log_file = FileLogger(destination_filename)
 
     clean_up_handler = atexit.register(clean_up, [log_db, log_mqtt, log_file])

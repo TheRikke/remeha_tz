@@ -35,7 +35,7 @@ class TestLogToMQtt(TestCase):
         self.addCleanup(self.patcher.stop)
         self.locale_mock.getlocale.return_value = ['en_US', 'UTF8']
         self.default_config = json.loads(
-            """{ "mqtt_logger": { "enabled": true, "host": "localhost", "port": 1883, "topic": "boiler/",
+            """{ "mqtt_logger": { "enabled": true, "host": "localhost", "port": 1883, "topic": "boiler",
               "log_values": ["outside_temp", "flow_temp", "return_temp", "status", "substatus", "locking", "blocking",
                "calorifier_temp", "airflow_actual"],
               "Log_values_with_duration": [ {"value_name": "status", "expected_value": "burning_dhw"}]}}
@@ -48,7 +48,7 @@ class TestLogToMQtt(TestCase):
         with mock.patch('mqtt_logger.mqttClient') as mqtt_mock:
             mqtt_mock.Client.return_value = mqtt_mock
             sut = LogToMQtt(json.loads(
-                """{ "mqtt_logger": { "enabled": true, "host": "myhost", "port": 1234, "topic": "boiler/",
+                """{ "mqtt_logger": { "enabled": true, "host": "myhost", "port": 1234, "topic": "boiler",
                   "log_values": ["test_value"],
                   "Log_values_with_duration": []}}
                 """), 5)
@@ -153,7 +153,7 @@ class TestLogToMQtt(TestCase):
         with mock.patch('mqtt_logger.mqttClient') as mqtt_mock:
             mqtt_mock.Client.return_value = mqtt_mock
             sut = LogToMQtt(json.loads("""{ "mqtt_logger": { "enabled": true, "host": "localhost", "port": 1883,
-                "topic": "boiler/",
+                "topic": "boiler",
                 "log_values": ["outside_temp"],
                 "scale_to_percent": [
                     {
@@ -173,6 +173,28 @@ class TestLogToMQtt(TestCase):
             sut.log(Frame(frame_data=TestLogToMQtt.raw_test_data), 0)
 
             mqtt_mock.publish.assert_called_once_with('boiler/outside_temp', '10.0', retain=True)
+
+    def test_log_single_value_when_disabled_config(self):
+        """
+        test case where the value to post with mqtt is increases the "not changed since"
+        """
+        with mock.patch('mqtt_logger.mqttClient') as mqtt_mock:
+            mqtt_mock.Client.return_value = mqtt_mock
+            sut = LogToMQtt(json.loads("""{ "mqtt_logger": { "enabled": false}}"""), 5)
+
+            sut.log(Frame(frame_data=TestLogToMQtt.raw_test_data), 0)
+            mqtt_mock.publish.assert_not_called()
+
+    def test_log_single_value_when_no_config(self):
+        """
+        test case where the value to post with mqtt is increases the "not changed since"
+        """
+        with mock.patch('mqtt_logger.mqttClient') as mqtt_mock:
+            mqtt_mock.Client.return_value = mqtt_mock
+            sut = LogToMQtt(json.loads("""{}"""), 5)
+            sut.log(Frame(frame_data=TestLogToMQtt.raw_test_data), 0)
+
+            mqtt_mock.publish.assert_not_called()
 
     def test_default_config(self):
         """
@@ -198,8 +220,7 @@ class TestLogToMQtt(TestCase):
                          call('boiler/status', 'Burning CH (0s)', retain=True),
                          call('boiler/substatus', 'Normal internal setpoint (0s)', retain=True),
                          call('boiler/locking', 'No locking (0s)', retain=True),
-                         call('boiler/blocking', 'No Blocking (0s)', retain=True),
-                         call('boiler/airflow_actual', '2410.0 (0s)', retain=True)]
+                         call('boiler/blocking', 'No Blocking (0s)', retain=True)]
                 mqtt_mock.publish.assert_has_calls(calls)
 
     def test_log(self):

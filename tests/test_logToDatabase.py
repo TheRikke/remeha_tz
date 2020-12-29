@@ -27,6 +27,9 @@ class TestLogToDatabase(TestBase):
                            0x80, 0x47, 0x03, 0x40, 0x35, 0x00, 0x00, 0x17,
                            0xef, 0x03])
 
+    def setUp(self):
+        self.cursor_mocks = []
+
     @patch('database_logger.mysql.connector')
     def test_log_all_values(self, connector_mock):
         config = '{ "database_logger": { "enabled": true, "host": "testserver.local", "user_name": "database_user", "password": "secret_passwort" } }'
@@ -79,24 +82,76 @@ class TestLogToDatabase(TestBase):
         sut.log_data(Frame(frame_data=TestLogToDatabase.raw_test_data))
         assert not connector_mock.connect.called
 
+    def add_mocks(self, prepared=None):
+        new_mock = mock.MagicMock()
+        new_mock.with_rows = False
+        self.cursor_mocks += [new_mock]
+        return new_mock
+
+    def get_mock(self, table_name, insert_mock=False):
+        for mock_to_check in self.cursor_mocks:
+            for execute_calls in mock_to_check.method_calls:
+                if execute_calls[0] == 'execute':
+                    if insert_mock:
+                        args = execute_calls.args[0]
+                        if args.startswith("INSERT INTO {}".format(table_name)):
+                            return mock_to_check
+                    else:
+                        if execute_calls == call.execute("SHOW TABLES LIKE '{}'".format(table_name)):
+                            return mock_to_check
+        return mock.MagicMock()
+
     @patch('database_logger.mysql.connector')
-    def test_table_creation(self, connector_mock):
+    def test_table_creation_boiler_data(self, connector_mock):
         config = '{ "database_logger": { "enabled": true, "host": "testserver.local", "user_name": "database_user", "password": "secret_passwort" } }'
-        cursor_mock = mock.MagicMock()
-        insert_cursor_mock = mock.MagicMock()
-        db_cursor_mock = mock.MagicMock()
-        table_cursor_mock = mock.MagicMock()
-        connector_mock.connect.return_value = cursor_mock
-        cursor_mock.cursor.side_effect = [db_cursor_mock, table_cursor_mock, insert_cursor_mock]
-        insert_cursor_mock.cursor.return_value = table_cursor_mock
-        table_cursor_mock.with_rows = False
-        sut = DatabaseLogger(json.loads(config))
+        remeha_db_mock = mock.MagicMock()
+        connector_mock.connect.return_value = remeha_db_mock
+        remeha_db_mock.cursor.side_effect = self.add_mocks
+        DatabaseLogger(json.loads(config))
+        mock_to_check = self.get_mock('boiler_data')
         calls = [
-            call('CREATE TABLE boiler_data (time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, flow_temp FLOAT,return_temp FLOAT,dhw_in_temp FLOAT,outside_temp FLOAT,calorifier_temp FLOAT,boiler_control_temp FLOAT,room_temp FLOAT,cv_setpoint FLOAT,dhw_setpoint FLOAT,room_setpoint FLOAT,airflow_setpoint FLOAT,airflow_actual FLOAT,ionisation_current FLOAT,intern_setpoint FLOAT,output FLOAT,pump_speed FLOAT,setpoint_power FLOAT,actual_power FLOAT,dwh_heat_demand BOOL,anti_legionella BOOL,dhw_blocking BOOL,dhw_eco_boiler_not_kept_warm BOOL,frost_protection BOOL,heat_demand BOOL,modulating_controller_demand BOOL,modulating_controller BOOL,dhw_enabled BOOL,ch_enabled BOOL,min_gas_pressure BOOL,flow_switch_for_detecting_dhw BOOL,ionisation BOOL,release_input BOOL,shutdown_input BOOL,ext_gas_valve BOOL,ext_three_way_valve BOOL,three_way_valve BOOL,ignition BOOL,gas_valve BOOL,opentherm_smart_power BOOL,status_report BOOL,ext_ch_pump BOOL,calorifier_pump BOOL,pump BOOL,status TINYINT UNSIGNED,locking TINYINT UNSIGNED,blocking TINYINT UNSIGNED,substatus TINYINT UNSIGNED,fan_speed FLOAT,su_state FLOAT,su_locking FLOAT,su_blocking FLOAT,hydr_pressure FLOAT,dhw_timer_enable BOOL,ch_timer_enable BOOL,hru_active BOOL,control_temp FLOAT,dhw_flow FLOAT,solar_temp FLOAT,hmi_active FLOAT,ch_setpoint_hmi FLOAT,dhw_setpoint_hmi FLOAT,service_mode FLOAT,serial_mode FLOAT, whole_frame TINYBLOB);'),
+            call("SHOW TABLES LIKE 'boiler_data'"),
+            call('CREATE TABLE boiler_data (time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, flow_temp FLOAT, return_temp FLOAT, dhw_in_temp FLOAT, outside_temp FLOAT, calorifier_temp FLOAT, boiler_control_temp FLOAT, room_temp FLOAT, cv_setpoint FLOAT, dhw_setpoint FLOAT, room_setpoint FLOAT, airflow_setpoint FLOAT, airflow_actual FLOAT, ionisation_current FLOAT, intern_setpoint FLOAT, output FLOAT, pump_speed FLOAT, setpoint_power FLOAT, actual_power FLOAT, dwh_heat_demand BOOL, anti_legionella BOOL, dhw_blocking BOOL, dhw_eco_boiler_not_kept_warm BOOL, frost_protection BOOL, heat_demand BOOL, modulating_controller_demand BOOL, modulating_controller BOOL, dhw_enabled BOOL, ch_enabled BOOL, min_gas_pressure BOOL, flow_switch_for_detecting_dhw BOOL, ionisation BOOL, release_input BOOL, shutdown_input BOOL, ext_gas_valve BOOL, ext_three_way_valve BOOL, three_way_valve BOOL, ignition BOOL, gas_valve BOOL, opentherm_smart_power BOOL, status_report BOOL, ext_ch_pump BOOL, calorifier_pump BOOL, pump BOOL, status TINYINT UNSIGNED, locking TINYINT UNSIGNED, blocking TINYINT UNSIGNED, substatus TINYINT UNSIGNED, fan_speed FLOAT, su_state FLOAT, su_locking FLOAT, su_blocking FLOAT, hydr_pressure FLOAT, dhw_timer_enable BOOL, ch_timer_enable BOOL, hru_active BOOL, control_temp FLOAT, dhw_flow FLOAT, solar_temp FLOAT, hmi_active FLOAT, ch_setpoint_hmi FLOAT, dhw_setpoint_hmi FLOAT, service_mode FLOAT, serial_mode FLOAT, whole_frame TINYBLOB);'),
+        ]
+        mock_to_check.execute.assert_has_calls(calls, any_order=False)
+
+    @patch('database_logger.mysql.connector')
+    def test_table_creation_status_mapped(self, connector_mock):
+        config = '{ "database_logger": { "enabled": true, "host": "testserver.local", "user_name": "database_user", "password": "secret_passwort" } }'
+        remeha_db_mock = mock.MagicMock()
+        connector_mock.connect.return_value = remeha_db_mock
+        remeha_db_mock.cursor.side_effect = self.add_mocks
+        DatabaseLogger(json.loads(config))
+        mock_to_check = self.get_mock('status_mapped')
+        calls = [
             call("SHOW TABLES LIKE 'status_mapped'"),
             call('CREATE TABLE status_mapped (value INT KEY, name TINYTEXT);'),
             call("INSERT INTO status_mapped (value,name) VALUES (0,'Standby'),(1,'boiler_start'),(2,'burner_start'),(3,'burning_ch'),(4,'burning_dhw'),(5,'burner_stop'),(6,'boiler_stop'),(8,'controlled_stop'),(9,'blocking_mode'),(10,'locking_mode'),(11,'chimney_mode_1'),(12,'chimney_mode_2'),(13,'chimney_mode_3'),(15,'manual_heat_demand'),(16,'boiler_frost_protection'),(17,'de_aeration'),(18,'controller_temp_protection');)"),
         ]
-        table_cursor_mock.execute.assert_has_calls(calls, any_order=False
-        #    "CREATE TABLE boiler_data (time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, flow_temp FLOAT,return_temp FLOAT,dhw_in_temp FLOAT,outside_temp FLOAT,calorifier_temp FLOAT,boiler_control_temp FLOAT,room_temp FLOAT,cv_setpoint FLOAT,dhw_setpoint FLOAT,room_setpoint FLOAT,airflow_setpoint FLOAT,airflow_actual FLOAT,ionisation_current FLOAT,intern_setpoint FLOAT,output FLOAT,pump_speed FLOAT,setpoint_power FLOAT,actual_power FLOAT,bitfield_22 INT,bitfield_23 INT,bitfield_24 INT,bitfield_25 INT,status FLOAT,locking FLOAT,blocking FLOAT,substatus FLOAT,fan_speed FLOAT,su_state FLOAT,su_locking FLOAT,su_blocking FLOAT,hydr_pressure FLOAT,bitfield_35 INT,control_temp FLOAT,dhw_flow FLOAT,solar_temp FLOAT,hmi_active FLOAT,ch_setpoint_hmi FLOAT,dhw_setpoint_hmi FLOAT,service_mode FLOAT,serial_mode FLOAT, whole_frame TINYBLOB);")
-           )
+        mock_to_check.execute.assert_has_calls(calls, any_order=False)
+
+    @patch('database_logger.mysql.connector')
+    def test_create_table_log_manual(self, connector_mock):
+        config = '{ "database_logger": { "enabled": true, "host": "testserver.local", "user_name": "database_user", "password": "secret_passwort" } }'
+        db_mock = mock.MagicMock()
+        connector_mock.connect.return_value = db_mock
+        db_mock.cursor.side_effect = self.add_mocks
+        DatabaseLogger(json.loads(config))
+
+        self.get_mock('manual_data').execute.assert_has_calls([
+            call("SHOW TABLES LIKE 'manual_data'"),
+            call('CREATE TABLE manual_data (time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, message TEXT);'),
+        ], any_order=False)
+
+    @patch('database_logger.mysql.connector')
+    def test_log_manual(self, connector_mock):
+        config = '{ "database_logger": { "enabled": true, "host": "testserver.local", "user_name": "database_user", "password": "secret_passwort" } }'
+        cursor_mock = mock.MagicMock()
+        connector_mock.connect.return_value = cursor_mock
+        cursor_mock.cursor.side_effect = self.add_mocks
+        sut = DatabaseLogger(json.loads(config))
+        sut.log_manual("test message")
+
+        self.get_mock('manual_data', insert_mock=True).execute.assert_has_calls([
+            call('INSERT INTO manual_data (message) VALUES (%s);', params=('test message',))
+        ], any_order=False)

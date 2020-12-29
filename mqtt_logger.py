@@ -17,12 +17,18 @@ def get_human_readable_duration_and_unit(timediff):
     return total_seconds / (60 * 60 * 24), 'd'
 
 
+def on_message(client, update_function, message):
+    if update_function:
+        update_function(message.payload.decode('UTF-8'))
+
+
 class LogToMQtt:
-    def __init__(self, config, update_freq_in_s):
+    def __init__(self, config, update_freq_in_s, function_callback=None):
+        self.client = None
         if config and 'mqtt_logger' in config:
             if self.process_config(config['mqtt_logger']) and self.config['enabled']:
                 self.update_freq_in_s = update_freq_in_s
-                self.client = mqttClient.Client("Python")
+                self.client = mqttClient.Client("remeha logger")
                 self.translator = Translator()
                 try:
                     self.client.connect(host=self.config['host'], port=self.config['port'])
@@ -32,7 +38,11 @@ class LogToMQtt:
                 self.frame_decoder = None
                 if self.client:
                     self.frame_decoder = FrameDecoder()
+                    self.client.on_message = on_message
+                    self.client.user_data_set(function_callback)
+                    self.client.subscribe("{}/manual_log".format(self.topic))
                     self.client.loop_start()
+
                 self.previous_values = {}
                 self.last_known_duration = {}
             else:
@@ -56,6 +66,12 @@ class LogToMQtt:
         if 'port' not in config:
             self.config = None
             log.error('missing "port" in "mqtt_logger" config section')
+        if 'topic' not in config:
+            self.topic = 'boiler'
+            log.warning('missing "port" in "mqtt_logger" config section. Using "boiler/"')
+        else:
+            self.topic = config['topic']
+
         if 'log_values' in config:
             self.log_single_value_list = config['log_values']
         if 'log_values_with_duration' in config:
@@ -71,20 +87,17 @@ class LogToMQtt:
         return self.config
 
     def log(self, frame, runtime_seconds):
-        if runtime_seconds % self.update_freq_in_s == 0:
+        if self.client and runtime_seconds % self.update_freq_in_s == 0:
             unpacked_data = frame.get_parseddata()
-            if self.client:
-                for value_name in self.log_single_value_list:
-                    if value_name in self.scaled_values:
-                        self.log_single_value(value_name, unpacked_data, scale_to_percent=[self.scaled_values[value_name][0], self.scaled_values[value_name][1]])
-                    else:
-                        self.log_single_value(value_name, unpacked_data)
-                for value_name in self.log_with_timestamp_list:
-                    self.log_single_value(value_name, unpacked_data, frame.timestamp)
-                for entry in self.log_duration_list:
-                    self.log_duration_of_value(entry['value_name'], entry['expected_value'], unpacked_data, frame.timestamp)
-            else:
-                print("Temp: %d" % self.frame_decoder.decode(unpacked_data, 'outside_temp'))
+            for value_name in self.log_single_value_list:
+                if value_name in self.scaled_values:
+                    self.log_single_value(value_name, unpacked_data, scale_to_percent=[self.scaled_values[value_name][0], self.scaled_values[value_name][1]])
+                else:
+                    self.log_single_value(value_name, unpacked_data)
+            for value_name in self.log_with_timestamp_list:
+                self.log_single_value(value_name, unpacked_data, frame.timestamp)
+            for entry in self.log_duration_list:
+                self.log_duration_of_value(entry['value_name'], entry['expected_value'], unpacked_data, frame.timestamp)
 
     def log_single_value(self, value_name, unpacked_data, current_time=None, scale_to_percent=None):
         value = self.frame_decoder.decode(unpacked_data, value_name)

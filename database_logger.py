@@ -16,10 +16,27 @@ class DatabaseLogger:
             self.table_name = "boiler_data"
             self.database = self.__check_and_init_db(config['database_logger'])
             if self.database:
+                self.manual_log_cursor = self.database.cursor(prepared=True)
                 self.insert_cursor = self.database.cursor(prepared=True)
                 self.prepared_query = {}
                 self.number_of_uncommitted_records = 0
                 self.frame_decoder = FrameDecoder()
+
+    def _check_and_init_table(self, remeha_db, table_name, sql_query_fn):
+        db_cursor = remeha_db.cursor()
+        db_cursor.execute("SHOW TABLES LIKE '%s'" % table_name)
+        if not db_cursor.with_rows or not db_cursor.fetchall():
+            log.error("Table not found. Create %s" % table_name)
+            sql_query = ''
+            for val_name in sql_query_fn():
+                sql_query += " {} {},".format(val_name[0], val_name[1])
+
+            sql_query = sql_query[1:-1]
+            sql_query = "CREATE TABLE %s (%s);" % (table_name, sql_query)
+            log.debug(sql_query)
+            # print(sql_query)
+            db_cursor.execute(sql_query)
+            db_cursor.close()
 
     def __check_and_init_db(self, database_config):
         # CREATE USER 'currentuser' IDENTIFIED BY ';osdr90378a';
@@ -46,51 +63,45 @@ class DatabaseLogger:
             log.info('Logging to database disabled in config')
 
         if remeha_db:
-            db_cursor = remeha_db.cursor()
-            db_cursor.execute("SHOW DATABASES LIKE '%s'" % self.database_name)
-            if not db_cursor.with_rows or not db_cursor.fetchall():
-                log.info("Database not found. Create %s" % self.database_name)
-                db_cursor.reset()
-                db_cursor.execute("CREATE DATABASE %s" % self.database_name)
-            db_cursor.reset()
+            self._create_and_init_database(remeha_db)
 
-            remeha_db.cmd_init_db(self.database_name)
+            def sql_query_fn():
+                yield 'time', 'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP'
+                yield from self.get_type_names()
+                yield 'whole_frame', 'TINYBLOB'
+            self._check_and_init_table(remeha_db, self.table_name, sql_query_fn)
 
-            db_cursor = remeha_db.cursor()
-            db_cursor.execute("SHOW TABLES LIKE '%s'" % self.table_name)
-
-            if not db_cursor.with_rows or not db_cursor.fetchall():
-                log.error("Table not found. Create %s" % self.table_name)
-                db_cursor.reset()
-                sql_query = ''
-                for val_name in self.get_type_names():
-                    sql_query += "{} {},".format(val_name[0], val_name[1])
-
-                # uncomment if we need to remove the last separator
-                # sql_query = sql_query[0:-1]
-                sql_query = "CREATE TABLE %s (time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, %s whole_frame TINYBLOB);"\
-                            % (self.table_name, sql_query)
-                log.debug(sql_query)
-                # print(sql_query)
-                db_cursor.execute(sql_query)
-
-                # create tables for mapped values or if exists check for correct mapping. otherwise add new mapping
-                for data in datamap:
-                    if isinstance(data[4], dict):
-                        table_name = '{}_mapped'.format(data[2])
-                        db_cursor.execute("SHOW TABLES LIKE '{}'".format(table_name))
-                        if not db_cursor.with_rows or not db_cursor.fetchall():
-                            create_mapped_query = "CREATE TABLE %s (value INT KEY, name TINYTEXT);" % table_name
-                            db_cursor.execute(create_mapped_query)
-                            table_data = ""
-                            for mapping_value in data[4]:
-                                table_data += "({},'{}'),".format(mapping_value, data[4][mapping_value])
-                            table_data = table_data[0:-1] + ';'
-                            insert_mapped_query = 'INSERT INTO {} (value,name) VALUES {})'.format(table_name, table_data)
-                            db_cursor.execute(insert_mapped_query)
-
-            db_cursor.close()
+            self._check_and_init_table(remeha_db, 'manual_data', lambda: ([
+                ('time', 'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP'), ('message', 'TEXT')]))
+            # create tables for mapped values or check for correct mapping if table exists.
+            for data in datamap:
+                if isinstance(data[4], dict):
+                    table_name = '{}_mapped'.format(data[2])
+                    mapped_values_create_cursor = remeha_db.cursor()
+                    mapped_values_create_cursor.execute("SHOW TABLES LIKE '{}'".format(table_name))
+                    if not mapped_values_create_cursor.with_rows or not mapped_values_create_cursor.fetchall():
+                        mapped_values_create_cursor.reset()
+                        create_mapped_query = "CREATE TABLE %s (value INT KEY, name TINYTEXT);" % table_name
+                        mapped_values_create_cursor.execute(create_mapped_query)
+                        table_data = ""
+                        for mapping_value in data[4]:
+                            table_data += "({},'{}'),".format(mapping_value, data[4][mapping_value])
+                        table_data = table_data[0:-1] + ';'
+                        insert_mapped_query = 'INSERT INTO {} (value,name) VALUES {})'.format(table_name, table_data)
+                        mapped_values_create_cursor.reset()
+                        mapped_values_create_cursor.execute(insert_mapped_query)
+                    mapped_values_create_cursor.close()
         return remeha_db
+
+    def _create_and_init_database(self, remeha_db):
+        db_cursor = remeha_db.cursor()
+        db_cursor.execute("SHOW DATABASES LIKE '%s'" % self.database_name)
+        if not db_cursor.with_rows or not db_cursor.fetchall():
+            log.info("Database not found. Create %s" % self.database_name)
+            db_cursor.reset()
+            db_cursor.execute("CREATE DATABASE %s" % self.database_name)
+        db_cursor.close()
+        remeha_db.cmd_init_db(self.database_name)
 
     @staticmethod
     def get_type_names():
@@ -137,6 +148,15 @@ class DatabaseLogger:
             if self.number_of_uncommitted_records > 80:
                 self.database.commit()
                 self.number_of_uncommitted_records = 0
+
+    def log_manual(self, message):
+        """Log a message to the database. Meant for the user to enter data which is not provided by the boiler controller.
+        Like "I manually closed a heater circuit"
+        :param message: the message as text to log to the database
+        :return:
+        """
+        sql_query = 'INSERT INTO manual_data (message) VALUES (%s);'
+        self.manual_log_cursor.execute(sql_query, params=(message,))
 
     def retrieve_data(self, query):
         self.insert_cursor.execute(query)
