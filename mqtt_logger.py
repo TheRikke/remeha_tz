@@ -88,7 +88,7 @@ class LogToMQtt:
 
     def log_single_value(self, value_name, unpacked_data, current_time=None, scale_to_percent=None):
         value = self.frame_decoder.decode(unpacked_data, value_name)
-        mqtt_topic = "boiler/" + value_name
+        mqtt_topic = self.topic + "/" + value_name
         if scale_to_percent:
             value = ((value - scale_to_percent[0]) / (scale_to_percent[1] - scale_to_percent[0])) * 100
         value_format = '{:1.1f}'
