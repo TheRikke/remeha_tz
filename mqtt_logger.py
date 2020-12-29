@@ -59,7 +59,7 @@ class LogToMQtt:
         if 'port' not in config:
             self.config = None
             log.error('missing "port" in "mqtt_logger" config section')
-        if 'password' in config and config['password'] is not None and 'user_name' not in config:
+        if 'password' in config and config['password'] is not None and ('user_name' not in config or config['user_name'] is None):
             self.config = None
             log.error('missing "user_name" in "mqtt_logger" config section')
         if 'log_values' in config:
