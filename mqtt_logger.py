@@ -31,6 +31,9 @@ class LogToMQtt:
                 self.client = mqttClient.Client("remeha logger")
                 self.translator = Translator()
                 try:
+                    if 'user_name' in self.config and self.config['user_name'] is not None:
+                        password = None if 'password' not in self.config else self.config['password']
+                        self.client.username_pw_set(self.config['user_name'], password=password )
                     self.client.connect(host=self.config['host'], port=self.config['port'])
                 except Exception:
                     self.client = None
@@ -66,6 +69,9 @@ class LogToMQtt:
         if 'port' not in config:
             self.config = None
             log.error('missing "port" in "mqtt_logger" config section')
+        if 'password' in config and config['password'] is not None and ('user_name' not in config or config['user_name'] is None):
+            self.config = None
+            log.error('missing "user_name" in "mqtt_logger" config section')
         if 'topic' not in config:
             self.topic = 'boiler'
             log.warning('missing "port" in "mqtt_logger" config section. Using "boiler/"')
