@@ -93,9 +93,9 @@ class TestLogToDatabase(TestBase):
             for execute_calls in mock_to_check.method_calls:
                 if execute_calls[0] == 'execute':
                     if insert_mock:
-                        args = execute_calls.args[0]
-                        if args.startswith("INSERT INTO {}".format(table_name)):
-                            return mock_to_check
+                        for call_str in execute_calls[1]:
+                            if call_str.startswith("INSERT INTO {}".format(table_name)):
+                                return mock_to_check
                     else:
                         if execute_calls == call.execute("SHOW TABLES LIKE '{}'".format(table_name)):
                             return mock_to_check
