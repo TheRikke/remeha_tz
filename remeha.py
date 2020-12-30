@@ -53,22 +53,30 @@ def clean_up(instances_to_close):
 
 
 class FileLogger:
-    def __init__(self, filename):
-        is_new_file = not os.path.isfile(filename)
-        self.log_file = open(filename, "a")
+    def __init__(self, config, filename):
+        if not filename and config and config.get('enabled') and 'path' in config:
+            filename = os.path.expanduser(config['path'])
+        if filename:
+            is_new_file = not os.path.isfile(filename)
+            self.log_file = open(filename, "a")
 
-        self.csv_writer = csv.writer(self.log_file)
-        if is_new_file:
-            self.csv_writer.writerow(["timestamp", "SourceAddress", "FrameType", "Frame length"])
+            self.csv_writer = csv.writer(self.log_file)
+            if is_new_file:
+                self.csv_writer.writerow(["timestamp", "SourceAddress", "FrameType", "Frame length"])
+        else:
+            self.csv_writer = None
+            self.log_file = None
 
     def log_data(self, frame):
-        frame_data = frame.get_data()
-        row = [str(frame.timestamp), str(frame.get_source_address()), str(frame.get_type()), str(len(frame_data))]
-        row += frame_data
-        self.csv_writer.writerow(row)
+        if self.csv_writer:
+            frame_data = frame.get_data()
+            row = [str(frame.timestamp), str(frame.get_source_address()), str(frame.get_type()), str(len(frame_data))]
+            row += frame_data
+            self.csv_writer.writerow(row)
 
     def close(self):
-        self.log_file.close()
+        if self.log_file:
+            self.log_file.close()
 
 
 def log_remeha(source_serial, destination_filename, mqtt_freq, config):
@@ -84,7 +92,7 @@ def log_remeha(source_serial, destination_filename, mqtt_freq, config):
 
     log_db = DatabaseLogger(config)
     log_mqtt = LogToMQtt(config, mqtt_freq, lambda message: log_db.log_manual(message))
-    log_file = FileLogger(destination_filename)
+    log_file = FileLogger(config.get('file_logger'), destination_filename)
 
     clean_up_handler = atexit.register(clean_up, [log_db, log_mqtt, log_file])
     sample_data_request = bytes([0x02, 0xFE, 0x01, 0x05, 0x08, 0x02, 0x01, 0x69, 0xAB, 0x03])
@@ -152,7 +160,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Log data from Remeha boiler')
     parser.add_argument('-d', '--device', default="/dev/ttyS0",
                         help='serial device the boiler is connected to. i.e. /dev/ttyUSB0 [Default: %(default)s]')
-    parser.add_argument('-o', '--output', default="data.csv", help='file to log the data to [Default: %(default)s]')
+    parser.add_argument('-o', '--output', help='csv file to log the data to [Default: %(default)s]')
     parser.add_argument('-m', '--mqtt_freq', type=int, default="15",
                         help='frequency for publishing MQTT data in seconds [Default: %(default)s]')
     parser.add_argument('-v', '--verbose', action="count",
