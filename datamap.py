@@ -244,3 +244,18 @@ datamap_identification = [
     ['16s', lambda x: x, 'boiler_name', "Boiler Name", "", ''],
 
 ]
+
+
+def get_type_names():
+    for n, x in enumerate(datamap):
+        if isinstance(datamap[n][2], list):
+            for sub_index, sub_value in enumerate(datamap[n][2]):
+                type_name = datamap[n][2][sub_index]
+                if type_name.startswith('unknown'):
+                    continue
+                yield type_name
+        else:
+            type_name = datamap[n][2]
+            if type_name.startswith('unknown'):
+                continue
+            yield type_name

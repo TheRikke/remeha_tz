@@ -1,6 +1,6 @@
 import logging
 import paho.mqtt.client as mqttClient
-from datamap import Translator
+from datamap import Translator, get_type_names
 from remeha_core import FrameDecoder
 
 log = logging.getLogger(__name__)
@@ -60,6 +60,8 @@ class LogToMQtt:
         self.log_with_timestamp_list = []
         self.log_duration_list = []
         self.scaled_values = {}
+        self.log_extended = []
+        possible_value_names = list(get_type_names())
         if 'enabled' not in config:
             self.config = None
             log.error('missing "enabled" in "mqtt_logger" config section')
@@ -84,12 +86,30 @@ class LogToMQtt:
             self.log_duration_list = config['log_values_with_duration']
         if 'log_values_with_timestamp' in config:
             self.log_with_timestamp_list = config['log_values_with_timestamp']
+        if 'log' in config:
+            for current_log_entry in config['log']:
+                if 'value_name' in current_log_entry:
+                    if current_log_entry['value_name'] not in possible_value_names:
+                        log.warning(f'Unknown name "{current_log_entry["value_name"]}". Possible names are:')
+                        for possible_value_name in possible_value_names:
+                            log.warning(f'   {possible_value_name}')
+                if 'value_name' in current_log_entry and 'payload' in current_log_entry:
+                    log.error(f"Don't know what to do if 'value_name' and 'payload' are both specified in one log entity. (value_name: {config['log']['value_name']}, payload: {config['log']['payload']})")
+                    return None
+                if 'topic' not in current_log_entry and 'value_name' in current_log_entry:
+                    current_log_entry['topic'] = current_log_entry['value_name']
+                if not current_log_entry['topic'].startswith('/'):
+                    current_log_entry['topic'] = f"{self.topic}/{current_log_entry['topic']}"
+                if 'mapping' in current_log_entry or 'payload' in current_log_entry:
+                    self.log_extended += [current_log_entry]
+                else:
+                    log.error('Missing "value_name" in "log" entry. Please specify with "value_name" the source for the mapping.')
         if 'scale_to_percent' in config:
             for scales in config['scale_to_percent']:
                 self.scaled_values[scales['value_name']] = [scales['lower_limit'], scales['upper_limit']]
-        if not self.log_duration_list and not self.log_single_value_list and not self.log_with_timestamp_list:
+        if not self.log_duration_list and not self.log_single_value_list and not self.log_with_timestamp_list and not self.log_extended:
             self.config = None
-            log.error('Nothing to log. Specified "log_values", "log_values_with_timestamp" or "log_values_with_duration" to "mqtt_logger" config section')
+            log.error('Nothing to log. Specified "log_values", "log_values_with_timestamp", "log_mapped" or "log_values_with_duration" to "mqtt_logger" config section')
         return self.config
 
     def log(self, frame, runtime_seconds):
@@ -104,6 +124,17 @@ class LogToMQtt:
                 self.log_single_value(value_name, unpacked_data, frame.timestamp)
             for entry in self.log_duration_list:
                 self.log_duration_of_value(entry['value_name'], entry['expected_value'], unpacked_data, frame.timestamp)
+            for entry_config in self.log_extended:
+                self.log_extended_values(entry_config, unpacked_data)
+
+    def log_extended_values(self, mapping_config, unpacked_data):
+        retained = mapping_config.get('retained', False)
+
+        if 'mapping' in mapping_config:
+            value = self.frame_decoder.decode(unpacked_data, mapping_config['value_name'])
+            self.client.publish(mapping_config['topic'], mapping_config['mapping'].get(value, f'unknown({value})'), retain=retained)
+        elif 'payload' in mapping_config:
+            self.client.publish(mapping_config['topic'], mapping_config['payload'], retain=retained)
 
     def log_single_value(self, value_name, unpacked_data, current_time=None, scale_to_percent=None):
         value = self.frame_decoder.decode(unpacked_data, value_name)

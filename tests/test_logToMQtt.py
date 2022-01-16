@@ -264,3 +264,81 @@ class TestLogToMQtt(TestCase):
             TestLogToMQtt.unpacked_test_data[26] = 0
             sut.log_duration_of_value('status', 'burning_dhw', TestLogToMQtt.unpacked_test_data, update_date_2)
             mqtt_mock.publish.assert_called_once_with('boiler/status_burning_dhw_duration', '2s', retain=True)
+
+    def test_log_map_values(self):
+        """
+        test mapping values and output to the specified topic"
+        """
+        with mock.patch('mqtt_logger.mqttClient') as mqtt_mock:
+            mqtt_mock.Client.return_value = mqtt_mock
+            sut = LogToMQtt(json.loads("""{ "mqtt_logger": { "enabled": true, "host": "localhost", "port": 1883,
+                "topic": "boiler",
+                "log": [{
+                    "topic": "new_topic",
+                    "value_name": "status",
+                    "retained": true,
+                    "mapping": {
+                        "Standby":  "standby",
+                        "burning_ch":  "heating",
+                        "controller_temp_protection":  "standby"
+                    }
+                }]
+              }}
+            """), 5)
+
+            TestLogToMQtt.raw_test_data[13] = 10
+            TestLogToMQtt.raw_test_data[14] = 0
+            # update checksum
+            TestLogToMQtt.raw_test_data[71] = 0x61
+            TestLogToMQtt.raw_test_data[72] = 0xed
+            sut.log(Frame(frame_data=TestLogToMQtt.raw_test_data), 0)
+
+            mqtt_mock.publish.assert_called_once_with('boiler/new_topic', 'heating', retain=True)
+
+    def test_log_static_values(self):
+        """
+        test mapping values and output to the specified topic"
+        """
+        with mock.patch('mqtt_logger.mqttClient') as mqtt_mock:
+            mqtt_mock.Client.return_value = mqtt_mock
+            sut = LogToMQtt(json.loads("""{ "mqtt_logger": { "enabled": true, "host": "localhost", "port": 1883,
+                "topic": "boiler",
+                "log": [{
+                    "topic": "payloadtopic",
+                    "payload": "Test payload"
+                }]
+              }}
+            """), 5)
+
+            TestLogToMQtt.raw_test_data[13] = 10
+            TestLogToMQtt.raw_test_data[14] = 0
+            # update checksum
+            TestLogToMQtt.raw_test_data[71] = 0x61
+            TestLogToMQtt.raw_test_data[72] = 0xed
+            sut.log(Frame(frame_data=TestLogToMQtt.raw_test_data), 0)
+
+            mqtt_mock.publish.assert_called_once_with('boiler/payloadtopic', 'Test payload', retain=False)
+
+    def test_log_topic_start_at_root(self):
+        """
+        test mapping values and output to the specified topic"
+        """
+        with mock.patch('mqtt_logger.mqttClient') as mqtt_mock:
+            mqtt_mock.Client.return_value = mqtt_mock
+            sut = LogToMQtt(json.loads("""{ "mqtt_logger": { "enabled": true, "host": "localhost", "port": 1883,
+                "topic": "boiler",
+                "log": [{
+                    "topic": "/payloadtopic/testtopic",
+                    "payload": "Test payload"
+                }]
+              }}
+            """), 5)
+
+            TestLogToMQtt.raw_test_data[13] = 10
+            TestLogToMQtt.raw_test_data[14] = 0
+            # update checksum
+            TestLogToMQtt.raw_test_data[71] = 0x61
+            TestLogToMQtt.raw_test_data[72] = 0xed
+            sut.log(Frame(frame_data=TestLogToMQtt.raw_test_data), 0)
+
+            mqtt_mock.publish.assert_called_once_with('/payloadtopic/testtopic', 'Test payload', retain=False)
