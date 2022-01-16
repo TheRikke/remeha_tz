@@ -35,6 +35,15 @@ class TestRemeha(TestBase):
             config = read_config()
         assert 'database_logger' in config
 
+    def test_read_config_with_special_sign(self):
+        test_config_path = os.path.join(self.test_config_directory.name, 'test_config.json')
+        test_config = open(test_config_path, mode='w+', encoding='utf-8')
+        with mock.patch.dict('os.environ', {'REMEHA_CONF': test_config.name}):
+            test_config.write('{ "database_logger": { "host": "testserver.local", "user_name": "database_user", "password": "{\\"°C\\"" } }')
+            test_config.close()
+            config = read_config()
+        assert 'database_logger' in config
+
     def test_read_config_does_not_crash_on_unreadable_config(self):
         test_config_path = os.path.join(self.test_config_directory.name, 'test_config.json')
         test_config = open(test_config_path, mode='w+')

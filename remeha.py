@@ -145,7 +145,7 @@ def read_config():
     for path in config_path:
         if path:
             try:
-                with open(path) as source:
+                with open(path, encoding='utf-8') as source:
                     config = json.load(source)
                     break
             except IOError:

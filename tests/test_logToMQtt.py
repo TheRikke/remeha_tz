@@ -341,4 +341,28 @@ class TestLogToMQtt(TestCase):
             TestLogToMQtt.raw_test_data[72] = 0xed
             sut.log(Frame(frame_data=TestLogToMQtt.raw_test_data), 0)
 
-            mqtt_mock.publish.assert_called_once_with('/payloadtopic/testtopic', 'Test payload', retain=False)
+            mqtt_mock.publish.assert_called_once_with('payloadtopic/testtopic', 'Test payload', retain=False)
+
+    def test_log_topic_start_at_root(self):
+        """
+        test mapping values and output to the specified topic"
+        """
+        with mock.patch('mqtt_logger.mqttClient') as mqtt_mock:
+            mqtt_mock.Client.return_value = mqtt_mock
+            sut = LogToMQtt(json.loads("""{ "mqtt_logger": { "enabled": true, "host": "localhost", "port": 1883,
+                "topic": "boiler",
+                "log": [{
+                    "topic": "/payloadtopic/testtopic",
+                    "payload": "{\\"°C\\"}"
+                }]
+              }}
+            """), 5)
+
+            TestLogToMQtt.raw_test_data[13] = 10
+            TestLogToMQtt.raw_test_data[14] = 0
+            # update checksum
+            TestLogToMQtt.raw_test_data[71] = 0x61
+            TestLogToMQtt.raw_test_data[72] = 0xed
+            sut.log(Frame(frame_data=TestLogToMQtt.raw_test_data), 0)
+
+            mqtt_mock.publish.assert_called_once_with('payloadtopic/testtopic', '{\"°C\"}', retain=False)

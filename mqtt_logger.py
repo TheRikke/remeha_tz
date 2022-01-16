@@ -100,6 +100,8 @@ class LogToMQtt:
                     current_log_entry['topic'] = current_log_entry['value_name']
                 if not current_log_entry['topic'].startswith('/'):
                     current_log_entry['topic'] = f"{self.topic}/{current_log_entry['topic']}"
+                else:
+                    current_log_entry['topic'] = current_log_entry['topic'][1:]
                 if 'mapping' in current_log_entry or 'payload' in current_log_entry:
                     self.log_extended += [current_log_entry]
                 else:
