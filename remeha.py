@@ -86,10 +86,15 @@ def check_boiler_type(io_device):
     if 'boiler_name' not in device_data or device_data['boiler_name'] != 'Tzerra Export':
         log.warning("This software has been tested with 'Tzerra Export' only. It might work or not.")
         log.warning("If you are able to log data to csv, please open an issue on github and attach the csv.")
+        issue_url = 'https://github.com/TheRikke/remeha_tz/issues/new?'
         if 'boiler_name' in device_data:
             log.warning(f"Also mention the type your boiler reported: '{device_data['boiler_name']}'")
+            issue_url += f'title=Support+for+{device_data["boiler_name"].replace(" ", "+")}'
+            issue_url += f'&body=Please+add+support+for+%27{device_data["boiler_name"].replace(" ", "+")}%27.%0AAdd+a+csv+log+if+possible'
+            log.warning(f"Use this URL to start: {issue_url}")
         else:
             log.warning("Also mention that the boiler did not report a type.")
+
 
 
 def log_remeha(source_serial, destination_filename, mqtt_freq, config):
