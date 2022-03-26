@@ -2,7 +2,7 @@ import json
 import os
 import tempfile
 from unittest import mock
-from remeha import read_config, FileLogger
+from remeha import read_config, FileLogger, check_boiler_type
 from remeha_core import Frame
 from tests.test_base import TestBase
 
@@ -99,3 +99,18 @@ class TestRemeha(TestBase):
             file_logger.close()
             assert not os.path.exists(not_expected_file_name)
             assert os.path.exists(expected_file_name)
+
+    def test_device_check_with_unknown_type(self):
+        with self.assertLogs(level='WARNING') as cm:
+            with mock.patch('remeha.request_device_identification') as device_info_mock:
+                expected_boiler_type = 'Something Unknown'
+                device_info_mock.return_value = {'boiler_name': expected_boiler_type}
+                check_boiler_type(None)
+                self.assertIn('Tzerra Export', cm.output[0])
+                self.assertIn(expected_boiler_type, cm.output[2])
+
+    def test_device_check_with_no_type(self):
+        with self.assertLogs(level='WARNING') as cm:
+            with mock.patch('remeha.request_device_identification') as device_info_mock:
+                check_boiler_type(None)
+                self.assertIn('Tzerra Export', cm.output[0])

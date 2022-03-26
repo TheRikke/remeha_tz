@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import logging
 
 import serial
 import struct
@@ -8,18 +9,16 @@ import argparse
 
 from remeha_core import Frame
 
+log = logging.getLogger(__name__)
+
 
 def eprint(*arguments, **kwargs):
     print(*arguments, file=sys.stderr, **kwargs)
 
 
-class RequestFrame:
-    def __init__(self, destination_address, frame_type):
-        self.frame = bytearray([0x02, 0xFE, destination_address, 0x05, 0x08])
-        self.frame.append(frame_type & 0xFF)
-        self.frame.append((frame_type >> 8) & 0xFF)
-        self.add_checksum()
-        self.frame.append(0x03)
+class SendFrame:
+    def __init__(self):
+        self.frame = None
 
     def add_checksum(self):
         crc = 0xFFFF
@@ -34,6 +33,15 @@ class RequestFrame:
         self.frame.append(crc & 0xFF)
         self.frame.append((crc >> 8) & 0xFF)
 
+
+class RequestFrame(SendFrame):
+    def __init__(self, destination_address, frame_type):
+        self.frame = bytearray([0x02, 0xFE, destination_address, 0x05, 0x08])
+        self.frame.append(frame_type & 0xFF)
+        self.frame.append((frame_type >> 8) & 0xFF)
+        self.add_checksum()
+        self.frame.append(0x03)
+
     def get_frame_data(self):
         return self.frame
 
@@ -41,40 +49,45 @@ class RequestFrame:
 class FrameDecoder:
     def __init__(self):
         self.data_hash = {}
-        for value_index, element in enumerate(datamap_identification):
-            name_i = element[2]
-            if isinstance(name_i, list):
-                for sub_value_index, sub_element in enumerate(name_i):
-                    self.data_hash[sub_element] = [[value_index, sub_value_index]] + element
-            else:
-                self.data_hash[name_i] = [value_index] + element
         self.unpack_with_format = "<" + ''.join(entry[0] for entry in datamap_identification)
 
     def decode_all(self, data):
-        print(len(data))
-        if len(data) == 64:
+        if len(data) >= 64:
             unpacked_data = list(struct.unpack(self.unpack_with_format, data))
-            print(unpacked_data)
-            for index, value in enumerate(unpacked_data):
-                print("{}: {}".format(datamap_identification[index][3], value))
+            return unpacked_data
+        return []
+
+    def decode_to_dict(self, data):
+        result_map = {}
+        for index, value in enumerate(self.decode_all(data)):
+            value = datamap_identification[index][1](value)
+            log.debug("{}: {}".format(datamap_identification[index][3], value))
+            value_name = datamap_identification[index][2]
+            if not value_name.startswith('unknown'):
+                result_map[value_name] = value
+
+        return result_map
 
 
 def request_device_identification(io_device, address):
-    # identification_request: bytes = bytes([0x02, 0xFE, 0x00, 0x05, 0x08, 0x01, 0x0B, 0xd4, 0x9c, 0x03])
+    log.info(f"Requesting info from device with address {address}")
     identification_frame = RequestFrame(address, 0x0B01)
 
     test_the_frame = Frame(frame_data=identification_frame.get_frame_data())
-    print(test_the_frame)
+    decoded_data = {}
     # ensure the crc is right
-    if not test_the_frame.isValid:
-        exit(1)
-    io_device.write(identification_frame.get_frame_data())
-    identification_response = Frame(io_source=io_device)
-    if identification_response.isValid:
-        print(identification_response)
-        as_string = [chr(x) for x in identification_response.get_framedata()]
-        print(as_string)
-        print(FrameDecoder().decode_all(identification_response.get_data()))
+    if test_the_frame.isValid:
+        io_device.write(identification_frame.get_frame_data())
+        identification_response = Frame(io_source=io_device)
+        if identification_response.isValid:
+            log.debug(identification_response)
+            as_string = [chr(x) for x in identification_response.get_framedata()]
+            log.debug(as_string)
+            decoded_data = FrameDecoder().decode_to_dict(identification_response.get_data())
+            log.debug(decoded_data)
+    else:
+        log.warning(f"Request frame not valid: {test_the_frame}")
+    return decoded_data
 
 
 def request_infos(source_serial):
@@ -100,6 +113,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Log data from Remeha boiler')
     parser.add_argument('-d', '--device', default="/dev/ttyS0",
                         help='serial device the boiler is connected to. i.e. /dev/ttyUSB0 [Default: %(default)s]')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Be very verbose')
+    parser.add_argument('-q', '--quiet', action='store_true', help='No infos. Just error and warnings')
+
     args = parser.parse_args()
+    loglevel = logging.DEBUG if args.verbose else logging.INFO
+    loglevel = logging.WARNING if args.quiet else loglevel
+    logging.basicConfig(level=loglevel, format='%(message)s')
 
     request_infos(args.device)

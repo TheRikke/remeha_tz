@@ -13,6 +13,7 @@ import atexit
 from database_logger import DatabaseLogger
 from mqtt_logger import LogToMQtt
 from remeha_core import Frame
+from remeha_info import request_device_identification
 
 FORMAT = ('%(asctime)-15s %(threadName)-15s '
           '%(levelname)-8s %(module)-15s:%(lineno)-8s %(message)s')
@@ -79,6 +80,18 @@ class FileLogger:
             self.log_file.close()
 
 
+def check_boiler_type(io_device):
+    device_data = request_device_identification(io_device, 0)
+
+    if 'boiler_name' not in device_data or device_data['boiler_name'] != 'Tzerra Export':
+        log.warning("This software has been tested with 'Tzerra Export' only. It might work or not.")
+        log.warning("If you are able to log data to csv, please open an issue on github and attach the csv.")
+        if 'boiler_name' in device_data:
+            log.warning(f"Also mention the type your boiler reported: '{device_data['boiler_name']}'")
+        else:
+            log.warning("Also mention that the boiler did not report a type.")
+
+
 def log_remeha(source_serial, destination_filename, mqtt_freq, config):
     ser = serial.Serial(source_serial,
                         9600,
@@ -89,6 +102,8 @@ def log_remeha(source_serial, destination_filename, mqtt_freq, config):
                         )
     if not ser.isOpen():
         sys.exit("Could not open serial: " + source_serial)
+
+    check_boiler_type(ser)
 
     log_db = DatabaseLogger(config)
     log_mqtt = LogToMQtt(config, mqtt_freq, lambda message: log_db.log_manual(message))

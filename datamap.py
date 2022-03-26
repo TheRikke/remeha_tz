@@ -240,8 +240,8 @@ datamap_identification = [
     ['b', lambda x: x, 'unknown09', "unknown09", "", ""],
     ['b', lambda x: x, 'next_service_code', "Next Service Code", "", ''],
     ['21s', lambda x: x, 'unknown11_31', "Unknown 11-31", "", ''],
-    ['16s', lambda x: x, 'serial_number', "Serial Number", "", ''],
-    ['16s', lambda x: x, 'boiler_name', "Boiler Name", "", ''],
+    ['16s', lambda x: x.decode('UTF-8').strip(), 'serial_number', "Serial Number", "", ''],
+    ['16s', lambda x: x.decode('UTF-8').strip(), 'boiler_name', "Boiler Name", "", ''],
 
 ]
 
