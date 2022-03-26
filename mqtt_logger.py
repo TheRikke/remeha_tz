@@ -22,6 +22,16 @@ def on_message(client, update_function, message):
         update_function(message.payload.decode('UTF-8'))
 
 
+def on_connect(client, userdata, flags, rc):
+    if rc !=0:
+        log.error("MQTT connection returned result: " + mqttClient.connack_string(rc))
+
+
+def on_disconnect(client, userdata, rc):
+    if rc != 0:
+        log.error(f"MQTT Unexpected disconnection ({rc}): {mqttClient.connack_string(rc)}")
+
+
 class LogToMQtt:
     def __init__(self, config, update_freq_in_s, function_callback=None):
         self.client = None
@@ -29,13 +39,21 @@ class LogToMQtt:
             if self.process_config(config['mqtt_logger']) and self.config['enabled']:
                 self.update_freq_in_s = update_freq_in_s
                 self.client = mqttClient.Client("remeha logger")
+                self.client.on_connect = on_connect
+                self.client.on_disconnect = on_disconnect
+                self.client.enable_logger(log)
                 self.translator = Translator()
+                host = self.config['host']
+                port = self.config['port']
                 try:
                     if 'user_name' in self.config and self.config['user_name'] is not None:
                         password = None if 'password' not in self.config else self.config['password']
-                        self.client.username_pw_set(self.config['user_name'], password=password )
-                    self.client.connect(host=self.config['host'], port=self.config['port'])
-                except Exception:
+                        self.client.username_pw_set(self.config['user_name'], password=password)
+                    if 'tls_enabled' in self.config and self.config['tls_enabled']:
+                        self.client.tls_set()
+                    self.client.connect(host=host, port=port)
+                except Exception as ex:
+                    log.error(f"Could not connect to MQTT at {host}:{port}. Reason: {ex}")
                     self.client = None
 
                 self.frame_decoder = None
@@ -44,6 +62,7 @@ class LogToMQtt:
                     self.client.on_message = on_message
                     self.client.user_data_set(function_callback)
                     self.client.subscribe("{}/manual_log".format(self.topic))
+
                     self.client.loop_start()
 
                 self.previous_values = {}
