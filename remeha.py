@@ -120,7 +120,6 @@ def log_remeha(source_serial, destination_filename, mqtt_freq, config):
     runtime_seconds = 0
     try:
         while True:
-            # sys.stdout.flush()
             ser.write(sample_data_request)
 
             frame = Frame(io_source=ser)

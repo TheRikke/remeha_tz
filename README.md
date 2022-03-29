@@ -50,6 +50,7 @@ config/remeha.conf
     "enabled": true,
     "host": "localhost",
     "port": 1883,
+    "tls_enabled": false,
     "comment-topic": "specify the topic every value will be published to.",
     "topic": "boiler/",
     "log_values": ["outside_temp", "flow_temp", "return_temp", "calorifier_temp", "airflow_actual"],
@@ -84,14 +85,14 @@ file. See ```--help``` for more options and config/remeha.conf for the values lo
 ## Other useful information
 
 The csv file contains the raw frame received from the boiler and not the decoded values. This
-is done because I'm not sure about the meaning of some of the values. By saving the raw frame
-we don't loose any data and are able to decode them later. Also it makes supporting other
+is done because I'm not sure about the meaning of some values. By saving the raw frame
+we don't lose any data and are able to decode them later. Also it makes supporting other
 boiler types more easy.
 
-To convert the csv with raw values to csv with decoded values use the convert script:
+To convert the csv with raw values to csv with readable values use the convert script:
 
 ```
-remeha_convert.py --input-file <data csv> > converted.csv
+remeha_convert.py --input-file test.csv > converted.csv
 ```
 
 ## Hardware
@@ -99,7 +100,7 @@ remeha_convert.py --input-file <data csv> > converted.csv
 Most Remeha boiler use a simple serial connection with 5V TTL. If you have a Raspberry Pi, Arduino or similar, 
 it can most likely be directly connected to the boiler. To connect it to 3.3V like a PC you need a TTL converter or 
 a TTL-USB converter. 
-The remeha tzerra uses a RJ10 aka. 4P4C connector. I've used a old phone cord to connect my Raspberry Pi clone to the
+The remeha tzerra uses a RJ10 aka. 4P4C connector. I've used an old phone cord to connect my Raspberry Pi clone to the
 boiler.
 
 https://en.wikipedia.org/wiki/Modular_connector#4P4C
