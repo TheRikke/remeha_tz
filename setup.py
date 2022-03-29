@@ -7,7 +7,7 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='remeha_tz',
-    version='0.11',
+    version='0.12',
     packages=[],
     url='https://github.com/TheRikke/remeha_tz',
     license='',
