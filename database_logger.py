@@ -21,6 +21,10 @@ class DatabaseLogger:
                 self.prepared_query = {}
                 self.number_of_uncommitted_records = 0
                 self.frame_decoder = FrameDecoder()
+            else:
+                self.manual_log_cursor = None
+                self.insert_cursor = None
+
 
     def _check_and_init_table(self, remeha_db, table_name, sql_query_fn):
         db_cursor = remeha_db.cursor()
@@ -155,8 +159,9 @@ class DatabaseLogger:
         :param message: the message as text to log to the database
         :return:
         """
-        sql_query = 'INSERT INTO manual_data (message) VALUES (%s);'
-        self.manual_log_cursor.execute(sql_query, params=(message,))
+        if self.manual_log_cursor:
+            sql_query = 'INSERT INTO manual_data (message) VALUES (%s);'
+            self.manual_log_cursor.execute(sql_query, params=(message,))
 
     def retrieve_data(self, query):
         self.insert_cursor.execute(query)
