@@ -27,6 +27,13 @@ or for the latest version on github:
 pip install git+https://github.com/TheRikke/remeha_tz.git@master
 ```
 
+Before installing or updating the github version please remove the previous version:
+
+```
+pip uninstall remeha_tz
+```
+
+
 If you want to log to a mysql/mariadb, please copy config/remeha.conf to ~/remeha.conf, ~/.remeha.conf or /etc/remeha/remeha.conf
 and change the database parameter in there.
 
